@@ -83,6 +83,10 @@ class _OrderHistoryScreenState
       body: Column(
         children: [
 
+          // ====================================================
+          // TAB STATUS
+          // ====================================================
+
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(
@@ -117,6 +121,10 @@ class _OrderHistoryScreenState
 
           const SizedBox(height: 5),
 
+          // ====================================================
+          // DAFTAR PESANAN
+          // ====================================================
+
           Expanded(
             child: ListView.builder(
               padding:
@@ -144,6 +152,10 @@ class _OrderHistoryScreenState
       ),
     );
   }
+
+  // ==========================================================
+  // TAB
+  // ==========================================================
 
   Widget _tabItem(
     String title,
@@ -187,6 +199,10 @@ class _OrderHistoryScreenState
     );
   }
 
+  // ==========================================================
+  // CARD PESANAN
+  // ==========================================================
+
   Widget _orderCard(
     BuildContext context,
     Map<String, dynamic> order,
@@ -210,6 +226,10 @@ class _OrderHistoryScreenState
           Row(
             children: [
 
+              // ==========================
+              // COVER BUKU
+              // ==========================
+
               Container(
                 width: 65,
                 height: 82,
@@ -227,6 +247,10 @@ class _OrderHistoryScreenState
               ),
 
               const SizedBox(width: 12),
+
+              // ==========================
+              // INFORMASI BUKU
+              // ==========================
 
               Expanded(
                 child: Column(
@@ -286,6 +310,10 @@ class _OrderHistoryScreenState
           const Divider(height: 1),
 
           const SizedBox(height: 10),
+
+          // ==========================
+          // STATUS
+          // ==========================
 
           Row(
             mainAxisAlignment:
@@ -361,6 +389,10 @@ class _OrderHistoryScreenState
       ),
     );
   }
+
+  // ==========================================================
+  // DETAIL
+  // ==========================================================
 
   void _showDetail(
     BuildContext context,

@@ -34,6 +34,10 @@ class ProfileScreen extends StatelessWidget {
               CrossAxisAlignment.start,
           children: [
 
+            // ==================================================
+            // HEADER
+            // ==================================================
+
             Row(
               mainAxisAlignment:
                   MainAxisAlignment.spaceBetween,
@@ -70,6 +74,10 @@ class ProfileScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 10),
+
+            // ==================================================
+            // PROFIL USER
+            // ==================================================
 
             Container(
               width: double.infinity,
@@ -146,6 +154,10 @@ class ProfileScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 22),
+
+            // ==================================================
+            // MENU PROFIL
+            // ==================================================
 
             _menuItem(
               context: context,
@@ -236,6 +248,10 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
+            // ==================================================
+            // LOGOUT
+            // ==================================================
+
             SizedBox(
               width: double.infinity,
               height: 46,
@@ -293,6 +309,10 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ============================================================
+  // MENU ITEM
+  // ============================================================
 
   Widget _menuItem({
     required BuildContext context,
@@ -363,6 +383,10 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ============================================================
+  // PESAN FITUR
+  // ============================================================
 
   void _showMessage(
     BuildContext context,

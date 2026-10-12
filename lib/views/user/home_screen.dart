@@ -54,6 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
 
+      // =========================
+      // APP BAR
+      // =========================
       appBar: _currentIndex == 4
           ? null
           : AppBar(
@@ -82,8 +85,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
 
+      // =========================
+      // BODY
+      // =========================
       body: _buildCurrentPage(),
 
+      // =========================
+      // BOTTOM NAVIGATION
+      // =========================
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
@@ -130,6 +139,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ============================================================
+  // HALAMAN BERDASARKAN BOTTOM NAVIGATION
+  // ============================================================
+
   Widget _buildCurrentPage() {
     switch (_currentIndex) {
       case 0:
@@ -152,6 +165,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // ============================================================
+  // HOME PAGE
+  // ============================================================
+
   Widget _buildHomePage() {
     return SafeArea(
       child: SingleChildScrollView(
@@ -159,6 +176,10 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
+            // =========================
+            // SEARCH BAR
+            // =========================
 
             Container(
               height: 45,
@@ -195,6 +216,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 22),
 
+            // =========================
+            // JUDUL
+            // =========================
+
             const Text(
               'Buku baru,\ncerita baru!',
               style: TextStyle(
@@ -216,6 +241,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 22),
+
+            // =========================
+            // BELI JUAL TUKAR
+            // =========================
 
             Row(
               mainAxisAlignment:
@@ -262,6 +291,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 25),
 
+            // =========================
+            // KATEGORI
+            // =========================
+
             Row(
               mainAxisAlignment:
                   MainAxisAlignment.spaceBetween,
@@ -294,6 +327,10 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildCategorySection(),
 
             const SizedBox(height: 20),
+
+            // =========================
+            // BUKU TERSEDIA
+            // =========================
 
             Row(
               mainAxisAlignment:
@@ -335,6 +372,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ============================================================
+  // MENU BELI / JUAL / TUKAR
+  // ============================================================
+
   Widget _mainMenu({
     required IconData icon,
     required String title,
@@ -374,6 +415,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ============================================================
+  // KATEGORI
+  // ============================================================
+
   Widget _buildCategorySection() {
     return Consumer<CategoryController>(
       builder: (context, controller, child) {
@@ -388,6 +433,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
+
+        // Jika API/database belum memberikan kategori,
+        // tetap tampilkan desain kategori.
         if (controller.categories.isEmpty) {
           return _defaultCategories();
         }
@@ -425,6 +473,10 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
+  // ============================================================
+  // KATEGORI DEFAULT SESUAI DESAIN
+  // ============================================================
 
   Widget _defaultCategories() {
     final categories = [
@@ -542,6 +594,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ============================================================
+  // DAFTAR BUKU
+  // ============================================================
+
   Widget _buildBookSection() {
     return Consumer<BookController>(
       builder: (context, controller, child) {
@@ -598,6 +654,10 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
+  // ============================================================
+  // SEARCH PAGE
+  // ============================================================
 
   Widget _buildSearchPage() {
     return SafeArea(
@@ -684,12 +744,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ============================================================
+  // NOTIFIKASI
+  // ============================================================
+
   Widget _buildNotificationPage() {
     return const Center(
       child: Column(
         mainAxisAlignment:
             MainAxisAlignment.center,
         children: [
+
           Icon(
             Icons.notifications_none,
             color: green,
