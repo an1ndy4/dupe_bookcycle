@@ -44,7 +44,7 @@ Bentuknya masih garis bawah (underline). Perlu diubah InputDecoration-nya menjad
 
 ----------------------------------------------
 #CATATAN KEKURANGAN PROJECT BOOKCYCLE BAGIAIN FITUR HOME#
-Didalam fitur home sudah terdapat beberapa button yg sesuai dengan UI, button utama yg di butuhkan sudah tersedia. namun
-tampilannya belum sempurna karena masih progress juga, nanti akan di fix kan untuk progressnya dan di perbaiki lagi kekurangan 
+
+Didalam fitur home sudah terdapat beberapa buttom yg sesuai dengan UI, buttom utama yg di butuhkan sudah tersedia. namun tampilannya belum sempurna karena masih progress juga, nanti akan di fix kan untuk progressnya dan di perbaiki lagi kekurangan 
 yg ada di dalam fitur home
 
