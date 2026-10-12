@@ -28,17 +28,17 @@ Perlu menambahkan halaman awal yang memuat logo utama BookCycle (buku dengan pan
 tagline "Buku yang kamu punya, mungkin sedang dicari orang lain.", serta ilustrasi tumpukan buku
 warna-warni di bagian bawah. (Status: To Do)
 
--Logika Navigasi & Timer:
+- Logika Navigasi & Timer:
 Perlu menerapkan fungsi penundaan waktu (delay timer) sekitar 2-3 detik sebelum aplikasi berpindah secara 
 otomatis ke halaman Login. (Status: To Do)
 
 -----------------------------------------
 #CATATAN KEKURANGAN PROJECT BAGIAN FITUR LOGIN#
--Logo Aplikasi:
+- Logo Aplikasi:
 Masih menggunakan ikon buku biasa. Perlu diperbarui menjadi logo buku dengan tambahan panah melingkar hijau 
 pada logo buku, agar sesuai UI. (Status: need fix
 
--Style Input Field: 
+- Style Input Field: 
 Bentuknya masih garis bawah (underline). Perlu diubah InputDecoration-nya menjadi kotak berbingkai melengkung
 (rounded border). (Status: need fix)
 
