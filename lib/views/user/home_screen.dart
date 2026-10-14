@@ -1,13 +1,13 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../controllers/book_controller.dart';
 import '../../controllers/category_controller.dart';
-
 import '../book/sell_book_screen.dart';
 import '../widgets/book_card.dart';
-
 import 'profile_screen.dart';
+import 'notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,24 +22,66 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController =
       TextEditingController();
 
-  static const Color green = Color(0xFF087F3E);
-  static const Color blue = Color(0xFF092B8F);
-  static const Color lightBlue = Color(0xFFF2F7FF);
+  final List<Map<String, dynamic>> _categories = [
+    {
+      'name': 'Fiksi',
+      'icon': Icons.menu_book_rounded,
+      'bg': Color(0xFFE1F5E8),
+      'fg': Color(0xFF087F3E),
+    },
+    {
+      'name': 'Non Fiksi',
+      'icon': Icons.card_giftcard_rounded,
+      'bg': Color(0xFFE0F1FF),
+      'fg': Color(0xFF1599E8),
+    },
+    {
+      'name': 'Pelajaran',
+      'icon': Icons.menu_book,
+      'bg': Color(0xFFDFF5E6),
+      'fg': Color(0xFF087F3E),
+    },
+    {
+      'name': 'Komik',
+      'icon': Icons.book,
+      'bg': Color(0xFFFFE4E4),
+      'fg': Color(0xFFE84B65),
+    },
+    {
+      'name': 'Self Help',
+      'icon': Icons.self_improvement,
+      'bg': Color(0xFFFFEBC7),
+      'fg': Color(0xFFE69A00),
+    },
+    {
+      'name': 'Teknologi',
+      'icon': Icons.psychology,
+      'bg': Color(0xFFDFF1FF),
+      'fg': Color(0xFF1599E8),
+    },
+    {
+      'name': 'Bisnis',
+      'icon': Icons.business_center,
+      'bg': Color(0xFFFFE6C7),
+      'fg': Color(0xFFE66A00),
+    },
+    {
+      'name': 'Lainnya',
+      'icon': Icons.apps,
+      'bg': Color(0xFFDFF1FF),
+      'fg': Color(0xFF1599E8),
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<BookController>(
-        context,
-        listen: false,
-      ).fetchAllBooks();
+      if (!mounted) return;
 
-      Provider.of<CategoryController>(
-        context,
-        listen: false,
-      ).fetchAllCategories();
+      context.read<BookController>().fetchAllBooks();
+      context.read<CategoryController>().fetchAllCategories();
     });
   }
 
@@ -49,66 +91,52 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _searchBooks(String value) {
+    context.read<BookController>().searchBooks(value);
+    setState(() {});
+  }
+
+  void _openSellPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SellBookScreen(),
+      ),
+    );
+  }
+
+  void _onNavigationTap(int index) {
+    if (index == 1) {
+      _openSellPage();
+      return;
+    }
+
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
-      // =========================
-      // APP BAR
-      // =========================
-      appBar: _currentIndex == 4
-          ? null
-          : AppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              title: const Text(
-                'BookCycle',
-                style: TextStyle(
-                  color: green,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _currentIndex = 3;
-                    });
-                  },
-                  icon: const Icon(
-                    Icons.notifications_none,
-                    color: blue,
-                  ),
-                ),
-              ],
-            ),
-
-      // =========================
-      // BODY
-      // =========================
-      body: _buildCurrentPage(),
-
-      // =========================
-      // BOTTOM NAVIGATION
-      // =========================
+      body: SafeArea(
+        child: _currentIndex == 2
+            ? const NotificationScreen()
+            : _currentIndex == 3
+                ? ProfileScreen()
+                : _buildHomeContent(),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        onTap: _onNavigationTap,
         type: BottomNavigationBarType.fixed,
-
-        selectedItemColor: green,
-        unselectedItemColor: blue,
-
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
-
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFF087F3E),
+        unselectedItemColor: const Color(0xFF092B8F),
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        elevation: 8,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -116,12 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Cari',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            activeIcon: Icon(Icons.add_circle),
+            icon: Icon(Icons.add_circle_outline, size: 32),
             label: 'Jual',
           ),
           BottomNavigationBarItem(
@@ -139,650 +162,366 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ============================================================
-  // HALAMAN BERDASARKAN BOTTOM NAVIGATION
-  // ============================================================
-
-  Widget _buildCurrentPage() {
-    switch (_currentIndex) {
-      case 0:
-        return _buildHomePage();
-
-      case 1:
-        return _buildSearchPage();
-
-      case 2:
-        return SellBookScreen();
-
-      case 3:
-        return _buildNotificationPage();
-
-      case 4:
-        return const ProfileScreen();
-
-      default:
-        return _buildHomePage();
-    }
-  }
-
-  // ============================================================
-  // HOME PAGE
-  // ============================================================
-
-  Widget _buildHomePage() {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 5, 18, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            // =========================
-            // SEARCH BAR
-            // =========================
-
-            Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: lightBlue,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText:
-                      'Cari buku, judul, penulis, atau kategori...',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF7C8BA5),
-                    fontSize: 11,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: blue,
-                    size: 21,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 12),
-                ),
-                onChanged: (value) {
-                  Provider.of<BookController>(
-                    context,
-                    listen: false,
-                  ).searchBooks(value);
-                },
-              ),
-            ),
-
-            const SizedBox(height: 22),
-
-            // =========================
-            // JUDUL
-            // =========================
-
-            const Text(
-              'Buku baru,\ncerita baru!',
-              style: TextStyle(
-                color: green,
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-                height: 1.1,
-              ),
-            ),
-
-            const SizedBox(height: 7),
-
-            const Text(
-              'Temukan buku favoritmu dengan harga terbaik.',
-              style: TextStyle(
-                color: blue,
-                fontSize: 13,
-              ),
-            ),
-
-            const SizedBox(height: 22),
-
-            // =========================
-            // BELI JUAL TUKAR
-            // =========================
-
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceEvenly,
+  Widget _buildHomeContent() {
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                _mainMenu(
-                  icon: Icons.shopping_cart_outlined,
-                  title: 'Beli',
+                _buildSearchField(),
+                const SizedBox(height: 26),
+                _buildBanner(),
+                const SizedBox(height: 38),
+                _buildActionMenu(),
+                const SizedBox(height: 38),
+                _buildSectionTitle(
+                  title: 'Kategori',
+                  action: 'Lihat Semua ›',
                   onTap: () {
-                    Provider.of<BookController>(
-                      context,
-                      listen: false,
-                    ).fetchAllBooks();
-                  },
-                ),
-
-                _mainMenu(
-                  icon: Icons.upload_outlined,
-                  title: 'Jual',
-                  onTap: () {
-                    setState(() {
-                      _currentIndex = 2;
-                    });
-                  },
-                ),
-
-                _mainMenu(
-                  icon: Icons.swap_horiz,
-                  title: 'Tukar',
-                  onTap: () {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text(
-                          'Fitur tukar buku akan segera tersedia.',
-                        ),
+                        content: Text('Daftar kategori BookCycle.'),
                       ),
                     );
                   },
                 ),
+                const SizedBox(height: 16),
+                _buildCategories(),
+                const SizedBox(height: 28),
+                _buildSectionTitle(
+                  title: _searchController.text.isEmpty
+                      ? 'Rekomendasi Buku'
+                      : 'Hasil Pencarian',
+                  action: '',
+                  onTap: () {},
+                ),
+                const SizedBox(height: 16),
               ],
             ),
+          ),
+        ),
+        Consumer<BookController>(
+          builder: (context, controller, child) {
+            final books = controller.books;
 
-            const SizedBox(height: 25),
-
-            // =========================
-            // KATEGORI
-            // =========================
-
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Kategori',
-                  style: TextStyle(
-                    color: blue,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+            if (books.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 30,
                   ),
-                ),
-
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Lihat Semua',
-                    style: TextStyle(
-                      color: green,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.menu_book,
+                          size: 48,
+                          color: Color(0xFF087F3E),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Belum ada buku yang ditampilkan.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              );
+            }
 
-            const SizedBox(height: 5),
-
-            _buildCategorySection(),
-
-            const SizedBox(height: 20),
-
-            // =========================
-            // BUKU TERSEDIA
-            // =========================
-
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Buku Tersedia',
-                  style: TextStyle(
-                    color: blue,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _currentIndex = 1;
-                    });
+            return SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              sliver: SliverGrid(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return BookCard(book: books[index]);
                   },
-                  child: const Text(
-                    'Lihat Semua',
-                    style: TextStyle(
-                      color: green,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  childCount: books.length,
                 ),
-              ],
-            ),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.62,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
-            const SizedBox(height: 8),
-
-            _buildBookSection(),
-          ],
+  Widget _buildSearchField() {
+    return Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF5FF),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: _searchBooks,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          prefixIcon: const Icon(
+            Icons.search,
+            color: Color(0xFF092B8F),
+            size: 29,
+          ),
+          hintText: 'Cari buku, judul, penulis, atau kategori...',
+          hintStyle: const TextStyle(
+            color: Color(0xFF8296B8),
+            fontSize: 14,
+          ),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    color: Color(0xFF092B8F),
+                  ),
+                  onPressed: () {
+                    _searchController.clear();
+                    _searchBooks('');
+                  },
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
       ),
     );
   }
 
-  // ============================================================
-  // MENU BELI / JUAL / TUKAR
-  // ============================================================
-
-  Widget _mainMenu({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
+  Widget _buildBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 27,
+      ),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF087F3E),
+            Color(0xFF005C35),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: const Row(
         children: [
-
-          Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              color: green,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 27,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Buku baru,\ncerita baru!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 29,
+                    height: 1.2,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 14),
+                Text(
+                  'Temukan buku favoritmu\ndengan harga terbaik.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
+              ],
             ),
           ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            title,
-            style: const TextStyle(
-              color: blue,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+          SizedBox(width: 10),
+          Icon(
+            Icons.auto_stories,
+            size: 82,
+            color: Color(0xFFB5F1CE),
           ),
         ],
       ),
     );
   }
 
-  // ============================================================
-  // KATEGORI
-  // ============================================================
-
-  Widget _buildCategorySection() {
-    return Consumer<CategoryController>(
-      builder: (context, controller, child) {
-
-        if (controller.isLoading) {
-          return const SizedBox(
-            height: 150,
-            child: Center(
-              child: CircularProgressIndicator(
-                color: green,
+  Widget _buildActionMenu() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildActionItem(
+          icon: Icons.shopping_bag_outlined,
+          label: 'Beli',
+          color: const Color(0xFF07843F),
+          onTap: () {},
+        ),
+        _buildActionItem(
+          icon: Icons.sell_outlined,
+          label: 'Jual',
+          color: const Color(0xFFFFC323),
+          onTap: _openSellPage,
+        ),
+        _buildActionItem(
+          icon: Icons.swap_horiz,
+          label: 'Tukar',
+          color: const Color(0xFF079FE8),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Fitur tukar buku segera tersedia.'),
               ),
-            ),
-          );
-        }
-
-        // Jika API/database belum memberikan kategori,
-        // tetap tampilkan desain kategori.
-        if (controller.categories.isEmpty) {
-          return _defaultCategories();
-        }
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics:
-              const NeverScrollableScrollPhysics(),
-          itemCount: controller.categories.length,
-          gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            childAspectRatio: 0.9,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 10,
-          ),
-          itemBuilder: (context, index) {
-            final category =
-                controller.categories[index];
-
-            return _categoryItem(
-              icon: _categoryIcon(index),
-              title: category.namaKategori,
-              onTap: () {
-                Provider.of<BookController>(
-                  context,
-                  listen: false,
-                ).filterByCategory(
-                  category.kategoriId ?? 0,
-                );
-              },
             );
           },
-        );
-      },
+        ),
+      ],
     );
   }
 
-  // ============================================================
-  // KATEGORI DEFAULT SESUAI DESAIN
-  // ============================================================
+  Widget _buildActionItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: SizedBox(
+        width: 90,
+        child: Column(
+          children: [
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 34,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF092B8F),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _defaultCategories() {
-    final categories = [
-      {
-        'title': 'Fiksi',
-        'icon': Icons.menu_book,
-      },
-      {
-        'title': 'Non-Fiksi',
-        'icon': Icons.auto_stories,
-      },
-      {
-        'title': 'Pelajaran',
-        'icon': Icons.school,
-      },
-      {
-        'title': 'Novel',
-        'icon': Icons.book,
-      },
-      {
-        'title': 'Self Help',
-        'icon': Icons.self_improvement,
-      },
-      {
-        'title': 'Teknologi',
-        'icon': Icons.computer,
-      },
-      {
-        'title': 'Bisnis',
-        'icon': Icons.business_center,
-      },
-      {
-        'title': 'Lainnya',
-        'icon': Icons.more_horiz,
-      },
-    ];
+  Widget _buildSectionTitle({
+    required String title,
+    required String action,
+    required VoidCallback onTap,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF092B8F),
+            fontSize: 23,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        if (action.isNotEmpty)
+          GestureDetector(
+            onTap: onTap,
+            child: Text(
+              action,
+              style: const TextStyle(
+                color: Color(0xFF087F3E),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
+  Widget _buildCategories() {
     return GridView.builder(
       shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(),
-      itemCount: categories.length,
-      gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: _categories.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        childAspectRatio: 0.9,
         crossAxisSpacing: 8,
-        mainAxisSpacing: 10,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.78,
       ),
       itemBuilder: (context, index) {
-        return _categoryItem(
-          icon: categories[index]['icon'] as IconData,
-          title: categories[index]['title'] as String,
-          onTap: () {},
-        );
-      },
-    );
-  }
+        final category = _categories[index];
 
-  IconData _categoryIcon(int index) {
-    const icons = [
-      Icons.menu_book,
-      Icons.auto_stories,
-      Icons.school,
-      Icons.book,
-      Icons.self_improvement,
-      Icons.computer,
-      Icons.business_center,
-      Icons.more_horiz,
-    ];
-
-    return icons[index % icons.length];
-  }
-
-  Widget _categoryItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF8F3),
-              borderRadius:
-                  BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: green,
-              size: 23,
-            ),
-          ),
-
-          const SizedBox(height: 5),
-
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: blue,
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // DAFTAR BUKU
-  // ============================================================
-
-  Widget _buildBookSection() {
-    return Consumer<BookController>(
-      builder: (context, controller, child) {
-
-        if (controller.isLoading) {
-          return const SizedBox(
-            height: 200,
-            child: Center(
-              child: CircularProgressIndicator(
-                color: green,
-              ),
-            ),
-          );
-        }
-
-        if (controller.books.isEmpty) {
-          return Container(
-            height: 150,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: lightBlue,
-              borderRadius:
-                  BorderRadius.circular(15),
-            ),
-            child: const Center(
-              child: Text(
-                'Belum ada buku tersedia',
-                style: TextStyle(
-                  color: blue,
+        return InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Kategori ${category['name']} dipilih.',
                 ),
+                duration: const Duration(seconds: 1),
               ),
-            ),
-          );
-        }
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics:
-              const NeverScrollableScrollPhysics(),
-          itemCount: controller.books.length,
-          gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.68,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemBuilder: (context, index) {
-            return BookCard(
-              book: controller.books[index],
             );
           },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: category['bg'] as Color,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  category['icon'] as IconData,
+                  color: category['fg'] as Color,
+                  size: 29,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                category['name'] as String,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF092B8F),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         );
       },
-    );
-  }
-
-  // ============================================================
-  // SEARCH PAGE
-  // ============================================================
-
-  Widget _buildSearchPage() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-
-            Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: lightBlue,
-                borderRadius:
-                    BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: 'Cari buku...',
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: blue,
-                  ),
-                  border: InputBorder.none,
-                ),
-                onChanged: (value) {
-                  Provider.of<BookController>(
-                    context,
-                    listen: false,
-                  ).searchBooks(value);
-                },
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            Expanded(
-              child: Consumer<BookController>(
-                builder:
-                    (context, controller, child) {
-
-                  if (controller.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: green,
-                      ),
-                    );
-                  }
-
-                  if (controller.books.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Buku tidak ditemukan',
-                        style: TextStyle(
-                          color: blue,
-                        ),
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount:
-                        controller.books.length,
-                    itemBuilder:
-                        (context, index) {
-                      return Padding(
-                        padding:
-                            const EdgeInsets.only(
-                          bottom: 10,
-                        ),
-                        child: BookCard(
-                          book:
-                              controller.books[index],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // NOTIFIKASI
-  // ============================================================
-
-  Widget _buildNotificationPage() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
-        children: [
-
-          Icon(
-            Icons.notifications_none,
-            color: green,
-            size: 65,
-          ),
-
-          SizedBox(height: 15),
-
-          Text(
-            'Belum ada notifikasi',
-            style: TextStyle(
-              color: blue,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          SizedBox(height: 5),
-
-          Text(
-            'Notifikasi transaksi akan muncul di sini.',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
