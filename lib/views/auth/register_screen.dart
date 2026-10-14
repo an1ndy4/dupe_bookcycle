@@ -189,6 +189,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: _darkGreen,
                       ),
                     ),
+<<<<<<< HEAD
                     const SizedBox(height: 14),
 
                     // Judul
@@ -204,6 +205,78 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Text(
                       'Mulai perjalanan bukumu di sini!',
                       style: GoogleFonts.poppins(
+=======
+                  ),
+                  const SizedBox(height: 25),
+                  const Center(
+                    child: Text(
+                      'Daftar Akun Baru',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF092B8F),
+                        fontSize: 23,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  const Center(
+                    child: Text(
+                      'Mulai perjalanan bukumu di sini!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF092B8F),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  _buildInputField(
+                    controller: _nameController,
+                    icon: Icons.person_outline,
+                    hint: 'Nama Lengkap',
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return 'Nama harus diisi';
+                      if (value.length < 3) return 'Nama minimal 3 karakter';
+                      return null;
+                    },
+                  ),
+                  _buildInputField(
+                    controller: _emailController,
+                    icon: Icons.email_outlined,
+                    hint: 'Email',
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return 'Email harus diisi';
+                      if (!value.contains('@') || !value.contains('.'))
+                        return 'Format email tidak valid';
+                      return null;
+                    },
+                  ),
+                  _buildInputField(
+                    controller: _phoneController,
+                    icon: Icons.phone_outlined,
+                    hint: 'Nomor HP (Opsional)',
+                    validator: (value) {
+                      if (value != null &&
+                          value.isNotEmpty &&
+                          value.length < 10) {
+                        return 'Nomor HP tidak valid';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: !_passwordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Password',
+                      hintStyle: const TextStyle(
+                        color: Color(0xFFB7C9EA),
+>>>>>>> 3ade6cd100b62603451f6027725aefbec1d0b89e
                         fontSize: 13,
                         color: const Color(0xFF1F3A5F),
                       ),

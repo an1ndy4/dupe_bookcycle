@@ -110,6 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
+<<<<<<< HEAD
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
@@ -151,6 +152,169 @@ class _LoginScreenState extends State<LoginScreen> {
                               'assets/images/logo.jpg.jpeg',
                               width: 80,
                               fit: BoxFit.contain,
+=======
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 35),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 25),
+                  Center(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 82,
+                      height: 82,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.auto_stories,
+                        color: Color(0xFF087F3E),
+                        size: 82,
+                      ),
+                    ),
+                  ),
+                  const Center(
+                    child: Text(
+                      'BookCycle',
+                      style: TextStyle(
+                        color: Color(0xFF087F3E),
+                        fontSize: 29,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  const Center(
+                    child: Text(
+                      'Selamat datang kembali!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF092B8F),
+                        fontSize: 23,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  const Center(
+                    child: Text(
+                      'Login untuk melanjutkan.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF092B8F),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      hintText: 'Email',
+                      hintStyle: TextStyle(
+                        color: Color(0xFFB7C9EA),
+                        fontSize: 13,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.email_outlined,
+                        color: Color(0xFF092B8F),
+                        size: 21,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(vertical: 13),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFFDDE4F0)),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF087F3E)),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Email harus diisi';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: !_passwordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Password',
+                      hintStyle: const TextStyle(
+                        color: Color(0xFFB7C9EA),
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: Color(0xFF092B8F),
+                        size: 21,
+                      ),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _passwordVisible = !_passwordVisible;
+                          });
+                        },
+                        icon: Icon(
+                          _passwordVisible
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: const Color(0xFF092B8F),
+                          size: 20,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                      enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFFDDE4F0)),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF087F3E)),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password harus diisi';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        // TODO: Implement forgot password
+                      },
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                      child: const Text(
+                        'Lupa Password?',
+                        style: TextStyle(
+                          color: Color(0xFF149447),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Consumer<AuthController>(
+                    builder: (context, controller, _) {
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 47,
+                        child: ElevatedButton(
+                          onPressed: controller.isLoading ? null : _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF087F3E),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(7),
+>>>>>>> 3ade6cd100b62603451f6027725aefbec1d0b89e
                             ),
                           ),
                           Text(
@@ -351,6 +515,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+<<<<<<< HEAD
 
   Widget _socialButton({
     required String label,
@@ -380,3 +545,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+=======
+}
+>>>>>>> 3ade6cd100b62603451f6027725aefbec1d0b89e
