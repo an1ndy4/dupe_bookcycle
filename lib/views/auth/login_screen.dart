@@ -110,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-<<<<<<< HEAD
+
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
@@ -152,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'assets/images/logo.jpg.jpeg',
                               width: 80,
                               fit: BoxFit.contain,
-=======
+      
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 35),
