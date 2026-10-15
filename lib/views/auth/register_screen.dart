@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+import '../../controllers/auth_controller.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -17,11 +19,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailC = TextEditingController();
   final _phoneC = TextEditingController();
   final _passC = TextEditingController();
-  final _confirmC = TextEditingController();
 
   bool _hidePass = true;
-  bool _hideConfirm = true;
-  bool _loading = false;
 
   static const Color _green = Color(0xFF1B6B3A);
   static const Color _darkGreen = Color(0xFF1B5E20);
@@ -32,7 +31,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailC.dispose();
     _phoneC.dispose();
     _passC.dispose();
-    _confirmC.dispose();
     super.dispose();
   }
 
@@ -68,38 +66,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  String? _validateConfirm(String? v) {
-    if (v == null || v.isEmpty) return 'Konfirmasi password wajib diisi';
-    if (v != _passC.text) return 'Konfirmasi password tidak sama';
-    return null;
-  }
-
   // ---------- AKSI ----------
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _loading = true);
-
-    // TODO: hubungkan ke Supabase di sini, contoh:
-    // await Supabase.instance.client.auth.signUp(
-    //   email: _emailC.text.trim(),
-    //   password: _passC.text,
-    //   data: {
-    //     'nama': _nameC.text.trim(),
-    //     'no_hp': _phoneC.text.trim(),
-    //   },
-    // );
-    await Future.delayed(const Duration(seconds: 1));
+    final controller = context.read<AuthController>();
+    final success = await controller.register(
+      email: _emailC.text.trim(),
+      password: _passC.text,
+      namaLengkap: _nameC.text.trim(),
+      nomorHp: _phoneC.text.trim().replaceAll(RegExp(r'[\s\-]'), ''),
+    );
 
     if (!mounted) return;
-    setState(() => _loading = false);
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Pendaftaran berhasil')));
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pendaftaran berhasil, silakan login'),
+          backgroundColor: _green,
+        ),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(controller.errorMessage ?? 'Pendaftaran gagal'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _goToLogin() {
@@ -179,6 +178,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'assets/images/logo.jpg.jpeg',
                         width: 80,
                         fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.auto_stories,
+                          color: _green,
+                          size: 80,
+                        ),
                       ),
                     ),
                     Text(
@@ -189,7 +193,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: _darkGreen,
                       ),
                     ),
-<<<<<<< HEAD
                     const SizedBox(height: 14),
 
                     // Judul
@@ -205,78 +208,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Text(
                       'Mulai perjalanan bukumu di sini!',
                       style: GoogleFonts.poppins(
-=======
-                  ),
-                  const SizedBox(height: 25),
-                  const Center(
-                    child: Text(
-                      'Daftar Akun Baru',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF092B8F),
-                        fontSize: 23,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  const Center(
-                    child: Text(
-                      'Mulai perjalanan bukumu di sini!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF092B8F),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  _buildInputField(
-                    controller: _nameController,
-                    icon: Icons.person_outline,
-                    hint: 'Nama Lengkap',
-                    validator: (value) {
-                      if (value == null || value.isEmpty)
-                        return 'Nama harus diisi';
-                      if (value.length < 3) return 'Nama minimal 3 karakter';
-                      return null;
-                    },
-                  ),
-                  _buildInputField(
-                    controller: _emailController,
-                    icon: Icons.email_outlined,
-                    hint: 'Email',
-                    validator: (value) {
-                      if (value == null || value.isEmpty)
-                        return 'Email harus diisi';
-                      if (!value.contains('@') || !value.contains('.'))
-                        return 'Format email tidak valid';
-                      return null;
-                    },
-                  ),
-                  _buildInputField(
-                    controller: _phoneController,
-                    icon: Icons.phone_outlined,
-                    hint: 'Nomor HP (Opsional)',
-                    validator: (value) {
-                      if (value != null &&
-                          value.isNotEmpty &&
-                          value.length < 10) {
-                        return 'Nomor HP tidak valid';
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: !_passwordVisible,
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFFB7C9EA),
->>>>>>> 3ade6cd100b62603451f6027725aefbec1d0b89e
                         fontSize: 13,
                         color: const Color(0xFF1F3A5F),
                       ),
@@ -333,8 +264,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _passC,
                       obscureText: _hidePass,
-                      textInputAction: TextInputAction.next,
+                      textInputAction: TextInputAction.done,
                       validator: _validatePassword,
+                      onFieldSubmitted: (_) => _register(),
                       style: GoogleFonts.poppins(fontSize: 14),
                       decoration: _decoration(
                         hint: 'Password',
@@ -352,63 +284,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-
-                    // Konfirmasi password
-                    TextFormField(
-                      controller: _confirmC,
-                      obscureText: _hideConfirm,
-                      textInputAction: TextInputAction.done,
-                      validator: _validateConfirm,
-                      style: GoogleFonts.poppins(fontSize: 14),
-                      decoration: _decoration(
-                        hint: 'Konfirmasi Password',
-                        icon: Icons.lock_reset_outlined,
-                        suffix: IconButton(
-                          icon: Icon(
-                            _hideConfirm
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            color: _green,
-                            size: 22,
-                          ),
-                          onPressed: () =>
-                              setState(() => _hideConfirm = !_hideConfirm),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 24),
 
-                    // Tombol Daftar
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _register,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _green,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : Text(
-                                'Daftar',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                    // Tombol Daftar (status loading dari AuthController)
+                    Consumer<AuthController>(
+                      builder: (context, controller, _) {
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: controller.isLoading ? null : _register,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _green,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                      ),
+                            ),
+                            child: controller.isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : Text(
+                                    'Daftar',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 18),
 
