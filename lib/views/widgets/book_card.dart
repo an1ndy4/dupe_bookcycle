@@ -25,7 +25,6 @@ class BookCard extends StatelessWidget {
       if (i > 0 && (value.length - i) % 3 == 0) {
         buffer.write('.');
       }
-
       buffer.write(value[i]);
     }
 
@@ -47,7 +46,6 @@ class BookCard extends StatelessWidget {
     if (book.jenisTransaksi == 'Jual' || book.jenisTransaksi == 'Jual_Tukar') {
       return _formatHarga(book.harga);
     }
-
     return 'Tukar';
   }
 
@@ -57,10 +55,12 @@ class BookCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => BookDetailScreen(book: book)),
+          MaterialPageRoute(
+            // ✅ SUDAH DIPERBAIKI MENGGUNAKAN book.bukuId!
+            builder: (_) => BookDetailScreen(bookId: book.bukuId!),
+          ),
         );
       },
-
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -68,40 +68,32 @@ class BookCard extends StatelessWidget {
           border: Border.all(color: lightBorder, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              // ✅ SUDAH DIPERBAIKI: withValues untuk menghindari warning deprecated
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // =====================================================
             // FOTO BUKU
-            // =====================================================
-
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F8F6),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(9),
-                  ),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F8F6),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(9)),
                 ),
-
                 child: ClipRRect(
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(9),
                   ),
-
                   child: book.fotoBuku != null && book.fotoBuku!.isNotEmpty
                       ? Image.network(
                           book.fotoBuku!,
                           fit: BoxFit.cover,
-
                           errorBuilder: (context, error, stackTrace) {
                             return const Center(
                               child: Icon(
@@ -123,52 +115,38 @@ class BookCard extends StatelessWidget {
               ),
             ),
 
-            // =====================================================
             // INFORMASI BUKU
-            // =====================================================
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
-
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // JUDUL
                   Text(
                     book.judulBuku,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-
                     style: const TextStyle(
                       color: blue,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
                   const SizedBox(height: 3),
-
-                  // PENULIS
                   Text(
                     book.penulis ?? '-',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-
                     style: const TextStyle(color: greyText, fontSize: 9),
                   ),
-
                   const SizedBox(height: 6),
-
-                  // HARGA + KONDISI
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
-
                     children: [
                       Expanded(
                         child: Text(
                           _getHargaAtauTukar(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-
                           style: const TextStyle(
                             color: green,
                             fontSize: 11,
@@ -176,26 +154,20 @@ class BookCard extends StatelessWidget {
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 4),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 5,
                           vertical: 3,
                         ),
-
                         decoration: BoxDecoration(
                           color: const Color(0xFFE9F6EF),
                           borderRadius: BorderRadius.circular(5),
                         ),
-
                         child: Text(
                           _formatKondisi(book.kondisiBuku),
-
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-
                           style: const TextStyle(
                             color: green,
                             fontSize: 7.5,

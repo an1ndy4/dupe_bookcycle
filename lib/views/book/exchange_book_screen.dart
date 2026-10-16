@@ -1,656 +1,300 @@
 import 'package:flutter/material.dart';
-
-import '../../models/book_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ExchangeBookScreen extends StatefulWidget {
-  const ExchangeBookScreen({super.key});
+  const ExchangeBookScreen({Key? key}) : super(key: key);
 
   @override
   State<ExchangeBookScreen> createState() => _ExchangeBookScreenState();
 }
 
 class _ExchangeBookScreenState extends State<ExchangeBookScreen> {
-  static const Color green = Color(0xFF087F3E);
-  static const Color blue = Color(0xFF092B8F);
-  static const Color greyText = Color(0xFF78909C);
-  static const Color lightBorder = Color(0xFFDCE8E4);
-
+  final _supabase = Supabase.instance.client;
+  String _selectedCategory = 'Semua';
   final TextEditingController _searchController = TextEditingController();
-
-  int _selectedCategory = 0;
-
-  final List<String> _categories = ['Semua', 'Fiksi', 'Non Fiksi', 'Pelajaran'];
-
-  // Data sementara untuk tampilan.
-  // Nanti diganti dengan data dari BookController.
-  final List<BookModel> _books = [
-    BookModel(
-      judulBuku: 'Laut Bercerita',
-      penulis: 'Leila S. Chudori',
-      kondisiBuku: 'Bekas_Layak',
-      jenisTransaksi: 'Tukar',
-      statusBuku: 'Tersedia',
-    ),
-    BookModel(
-      judulBuku: 'Dilan 1990',
-      penulis: 'Pidi Baiq',
-      kondisiBuku: 'Bekas_Layak',
-      jenisTransaksi: 'Tukar',
-      statusBuku: 'Tersedia',
-    ),
-    BookModel(
-      judulBuku: 'Filosofi Teras',
-      penulis: 'Henry Manampiring',
-      kondisiBuku: 'Bekas_Layak',
-      jenisTransaksi: 'Tukar',
-      statusBuku: 'Tersedia',
-    ),
-    BookModel(
-      judulBuku: 'Bumi Manusia',
-      penulis: 'Pramoedya Ananta Toer',
-      kondisiBuku: 'Bekas_Cukup',
-      jenisTransaksi: 'Tukar',
-      statusBuku: 'Tersedia',
-    ),
-  ];
+  List<Map<String, dynamic>> _books = [];
+  bool _isLoading = true;
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchBooks();
+  }
+
+  Future<void> _fetchBooks() async {
+    setState(() => _isLoading = true);
+
+    try {
+      var query = _supabase
+          .from('books')
+          .select('*, profiles(full_name)')
+          .eq('is_for_exchange', true)
+          .neq('user_id', _supabase.auth.currentUser!.id); // Bukan buku sendiri
+
+      if (_selectedCategory != 'Semua') {
+        query = query.eq('category', _selectedCategory);
+      }
+
+      if (_searchController.text.isNotEmpty) {
+        query = query.or(
+          'title.ilike.%${_searchController.text}%,author.ilike.%${_searchController.text}%',
+        );
+      }
+
+      final response = await query.order('created_at', ascending: false);
+
+      setState(() {
+        _books = List<Map<String, dynamic>>.from(response);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal load data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _selectBook(Map<String, dynamic> book) {
+    // Return book data ke halaman sebelumnya
+    Navigator.pop(context, book);
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryGreen = Color(0xFF2E7D32);
+    final categories = [
+      'Semua',
+      'Fiksi',
+      'Non Fiksi',
+      'Pelajaran',
+      'Komik',
+      'Self Help',
+    ];
+
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
         backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
         elevation: 0,
-
         leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: blue,
-            size: 19,
-          ),
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
         ),
-
         title: const Text(
           'Pilih Buku untuk Ditukar',
           style: TextStyle(
-            color: blue,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
-
-      body: SafeArea(
-        child: Column(
-          children: [
-            // SEARCH
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
-              child: _searchField(),
-            ),
-
-            // CATEGORY
-            SizedBox(
-              height: 32,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: _categories.length,
-                itemBuilder: (context, index) {
-                  final selected = _selectedCategory == index;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = index;
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 13),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: selected ? green : const Color(0xFFF5FAF8),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Text(
-                        _categories[index],
-                        style: TextStyle(
-                          color: selected ? Colors.white : green,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // DAFTAR BUKU
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 15),
-                itemCount: _books.length,
-                itemBuilder: (context, index) {
-                  return _bookItem(_books[index]);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _searchField() {
-    return SizedBox(
-      height: 34,
-      child: TextField(
-        controller: _searchController,
-        style: const TextStyle(color: blue, fontSize: 9),
-        decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.search_rounded, color: blue, size: 17),
-          hintText: 'Cari judul, penulis, atau kategori',
-          hintStyle: const TextStyle(color: greyText, fontSize: 8.5),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-          filled: true,
-          fillColor: const Color(0xFFF8FCFA),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: lightBorder),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: lightBorder),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _bookItem(BookModel book) {
-    return Container(
-      height: 84,
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Row(
+      body: Column(
         children: [
-          // COVER
-          Container(
-            width: 57,
-            height: 76,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2F6F4),
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: book.fotoBuku != null && book.fotoBuku!.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(5),
-                    child: Image.network(book.fotoBuku!, fit: BoxFit.cover),
-                  )
-                : const Icon(Icons.menu_book_rounded, color: green, size: 30),
-          ),
-
-          const SizedBox(width: 10),
-
-          // INFO
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  book.judulBuku,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: blue,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                  ),
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Cari judul, penulis, atau kategori',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _fetchBooks();
+                  },
                 ),
-
-                const SizedBox(height: 3),
-
-                Text(
-                  book.penulis ?? '-',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: greyText, fontSize: 8.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
-
-                const SizedBox(height: 3),
-
-                Text(
-                  'Kondisi: ${_formatKondisi(book.kondisiBuku)}',
-                  style: const TextStyle(color: greyText, fontSize: 7.5),
-                ),
-              ],
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+              onChanged: (value) => _fetchBooks(),
             ),
           ),
 
-          // PILIH
+          // Category Filter Chips
           SizedBox(
-            width: 45,
-            height: 25,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ExchangeUploadScreen(selectedBook: book),
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                final isSelected = _selectedCategory == category;
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() => _selectedCategory = category);
+                      _fetchBooks();
+                    },
+                    selectedColor: primaryGreen,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontSize: 12,
+                    ),
+                    backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: green,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Pilih',
-                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600),
-              ),
             ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // List Buku
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _books.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.book_outlined,
+                          size: 64,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tidak ada buku untuk ditukar',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _books.length,
+                    itemBuilder: (context, index) {
+                      final book = _books[index];
+                      return _buildBookCard(context, book, primaryGreen);
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 
-  String _formatKondisi(String kondisi) {
-    switch (kondisi) {
-      case 'Bekas_Layak':
-        return 'Bekas Layak';
-      case 'Bekas_Cukup':
-        return 'Bekas Cukup';
-      default:
-        return kondisi;
-    }
+  Widget _buildBookCard(
+    BuildContext context,
+    Map<String, dynamic> book,
+    Color primaryGreen,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Gambar Buku
+          Container(
+            width: 60,
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: book['image_url'] != null
+                  ? Image.network(
+                      book['image_url'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(color: Colors.grey[200]);
+                      },
+                    )
+                  : Container(color: Colors.grey[200]),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Info Buku
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  book['title'],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  book['author'],
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Kondisi: ${book['condition']}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pemilik: ${book['profiles']?['full_name'] ?? 'Unknown'}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+
+          // Tombol Pilih
+          ElevatedButton(
+            onPressed: () => _selectBook(book),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text('Pilih'),
+          ),
+        ],
+      ),
+    );
   }
-}
-
-// ============================================================
-// HALAMAN NO. 11
-// UNGGAH BUKU - TUKAR
-// ============================================================
-
-class ExchangeUploadScreen extends StatefulWidget {
-  final BookModel selectedBook;
-
-  const ExchangeUploadScreen({super.key, required this.selectedBook});
-
-  @override
-  State<ExchangeUploadScreen> createState() => _ExchangeUploadScreenState();
-}
-
-class _ExchangeUploadScreenState extends State<ExchangeUploadScreen> {
-  static const Color green = Color(0xFF087F3E);
-  static const Color blue = Color(0xFF092B8F);
-  static const Color greyText = Color(0xFF78909C);
-  static const Color lightBorder = Color(0xFFDCE8E4);
-
-  final TextEditingController _judulController = TextEditingController();
-
-  final TextEditingController _penulisController = TextEditingController();
-
-  final TextEditingController _deskripsiController = TextEditingController();
-
-  final TextEditingController _jenisBukuController = TextEditingController();
-
-  String? _selectedKategori;
-  String? _selectedKondisi;
 
   @override
   void dispose() {
-    _judulController.dispose();
-    _penulisController.dispose();
-    _deskripsiController.dispose();
-    _jenisBukuController.dispose();
+    _searchController.dispose();
     super.dispose();
-  }
-
-  void _pilihFoto() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur pilih foto akan dihubungkan selanjutnya.'),
-      ),
-    );
-  }
-
-  void _unggah() {
-    if (_judulController.text.trim().isEmpty) {
-      _pesan('Judul buku belum diisi.');
-      return;
-    }
-
-    if (_penulisController.text.trim().isEmpty) {
-      _pesan('Penulis belum diisi.');
-      return;
-    }
-
-    if (_selectedKategori == null) {
-      _pesan('Kategori belum dipilih.');
-      return;
-    }
-
-    if (_selectedKondisi == null) {
-      _pesan('Kondisi buku belum dipilih.');
-      return;
-    }
-
-    if (_jenisBukuController.text.trim().isEmpty) {
-      _pesan('Jenis buku yang dicari belum diisi.');
-      return;
-    }
-
-    _pesan('Data buku tukar siap diunggah.');
-  }
-
-  void _pesan(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: blue,
-            size: 19,
-          ),
-        ),
-
-        title: const Text(
-          'Unggah Buku - Tukar',
-          style: TextStyle(
-            color: blue,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 3, 16, 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // FOTO
-              GestureDetector(
-                onTap: _pilihFoto,
-                child: Container(
-                  width: double.infinity,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(color: const Color(0xFFB9DCD0)),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.camera_alt_rounded, color: green, size: 28),
-                      SizedBox(height: 3),
-                      Text(
-                        'Tambah Foto Buku',
-                        style: TextStyle(
-                          color: green,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: 1),
-                      Text(
-                        'Unggah foto sampai buku',
-                        style: TextStyle(color: green, fontSize: 8),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 11),
-
-              _label('Judul Buku'),
-
-              const SizedBox(height: 4),
-
-              _textField(
-                controller: _judulController,
-                hint: 'Masukkan judul buku',
-              ),
-
-              const SizedBox(height: 8),
-
-              _label('Penulis'),
-
-              const SizedBox(height: 4),
-
-              _textField(
-                controller: _penulisController,
-                hint: 'Masukkan nama penulis',
-              ),
-
-              const SizedBox(height: 8),
-
-              _label('Kategori'),
-
-              const SizedBox(height: 4),
-
-              _dropdown(
-                value: _selectedKategori,
-                hint: 'Pilih kategori',
-                items: const [
-                  'Fiksi',
-                  'Non Fiksi',
-                  'Pelajaran',
-                  'Komik',
-                  'Self Help',
-                  'Teknologi',
-                  'Bisnis',
-                  'Lainnya',
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedKategori = value;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 8),
-
-              _label('Kondisi Buku'),
-
-              const SizedBox(height: 4),
-
-              _dropdown(
-                value: _selectedKondisi,
-                hint: 'Pilih kondisi',
-                items: const ['Baru', 'Bekas Layak', 'Bekas Cukup'],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedKondisi = value;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 8),
-
-              _label('Deskripsi'),
-
-              const SizedBox(height: 4),
-
-              SizedBox(
-                height: 63,
-                child: TextField(
-                  controller: _deskripsiController,
-                  maxLines: 3,
-                  style: const TextStyle(color: blue, fontSize: 9),
-                  decoration: InputDecoration(
-                    hintText: 'Ceritakan kondisi buku, jumlah halaman, dll',
-                    hintStyle: const TextStyle(color: greyText, fontSize: 8.5),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(7),
-                      borderSide: const BorderSide(color: lightBorder),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(7),
-                      borderSide: const BorderSide(color: lightBorder),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              _label('Jenis Buku yang Dicari'),
-
-              const SizedBox(height: 4),
-
-              _textField(
-                controller: _jenisBukuController,
-                hint: 'Contoh: buku self improvement, novel, dll',
-              ),
-
-              const SizedBox(height: 13),
-
-              SizedBox(
-                width: double.infinity,
-                height: 39,
-                child: ElevatedButton(
-                  onPressed: _unggah,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: green,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                  ),
-                  child: const Text(
-                    'Unggah',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _label(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: blue,
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-
-  Widget _textField({
-    required TextEditingController controller,
-    required String hint,
-  }) {
-    return SizedBox(
-      height: 33,
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(color: blue, fontSize: 9.5),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: greyText, fontSize: 9),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 0,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(7),
-            borderSide: const BorderSide(color: lightBorder),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(7),
-            borderSide: const BorderSide(color: lightBorder),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(7),
-            borderSide: const BorderSide(color: green),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _dropdown({
-    required String? value,
-    required String hint,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      height: 33,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: lightBorder),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isExpanded: true,
-          hint: Text(
-            hint,
-            style: const TextStyle(color: greyText, fontSize: 9),
-          ),
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: blue,
-            size: 17,
-          ),
-          style: const TextStyle(color: blue, fontSize: 9.5),
-          items: items.map((item) {
-            return DropdownMenuItem<String>(value: item, child: Text(item));
-          }).toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
   }
 }

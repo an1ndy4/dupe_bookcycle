@@ -1,391 +1,467 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 
-import '../../models/book_model.dart';
+import '../widgets/chat_screen.dart';
+import '../widgets/cart_screen.dart';
 
-class BookDetailScreen extends StatelessWidget {
-  final BookModel book;
+class BookDetailScreen extends StatefulWidget {
+  final int bookId;
 
-  const BookDetailScreen({super.key, required this.book});
+  const BookDetailScreen({Key? key, required this.bookId}) : super(key: key);
 
-  static const Color green = Color(0xFF087F3E);
-  static const Color blue = Color(0xFF092B8F);
-  static const Color lightBorder = Color(0xFFDCE8E4);
-  static const Color greyText = Color(0xFF71858D);
+  @override
+  State<BookDetailScreen> createState() => _BookDetailScreenState();
+}
 
-  String _formatHarga(int? harga) {
-    if (harga == null || harga == 0) {
-      return 'Rp0';
-    }
+class _BookDetailScreenState extends State<BookDetailScreen> {
+  final _supabase = Supabase.instance.client;
+  Map<String, dynamic>? _book;
+  Map<String, dynamic>? _seller;
+  bool _isLoading = true;
+  bool _isAddingToCart = false;
 
-    final value = harga.toString();
-    final buffer = StringBuffer();
+  @override
+  void initState() {
+    super.initState();
+    _fetchBookData();
+  }
 
-    for (int i = 0; i < value.length; i++) {
-      if (i > 0 && (value.length - i) % 3 == 0) {
-        buffer.write('.');
+  Future<void> _fetchBookData() async {
+    try {
+      // Ambil data buku
+      final bookResponse = await _supabase
+          .from('books')
+          .select('*, profiles(full_name, phone_number)')
+          .eq('id', widget.bookId)
+          .single();
+
+      setState(() {
+        _book = bookResponse;
+        _seller = bookResponse['profiles'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal load data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-      buffer.write(value[i]);
-    }
-
-    return 'Rp${buffer.toString()}';
-  }
-
-  String _formatKondisi(String kondisi) {
-    switch (kondisi) {
-      case 'Bekas_Layak':
-        return 'Bekas Layak';
-      case 'Bekas_Cukup':
-        return 'Bekas Cukup';
-      default:
-        return kondisi;
     }
   }
 
-  String _formatJenisTransaksi(String jenis) {
-    switch (jenis) {
-      case 'Jual':
-        return 'Buku Fisik';
-      case 'Tukar':
-        return 'Tukar Buku';
-      case 'Jual_Tukar':
-        return 'Jual / Tukar';
-      default:
-        return jenis;
+  // 🛒 Tambah ke keranjang
+  Future<void> _addToCart() async {
+    setState(() => _isAddingToCart = true);
+
+    try {
+      final userId = _supabase.auth.currentUser!.id;
+
+      // Cek apakah buku sudah di keranjang
+      final existingCart = await _supabase
+          .from('cart')
+          .select()
+          .eq('user_id', userId)
+          .eq('book_id', widget.bookId)
+          .maybeSingle();
+
+      if (existingCart != null) {
+        throw Exception('Buku sudah ada di keranjang');
+      }
+
+      // Tambah ke cart
+      await _supabase.from('cart').insert({
+        'user_id': userId,
+        'book_id': widget.bookId,
+        'quantity': 1,
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Berhasil tambah ke keranjang'),
+          backgroundColor: Color(0xFF2E7D32),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isAddingToCart = false);
     }
+  }
+
+  // 💬 Chat penjual
+  void _chatSeller() {
+    // Navigate ke chat screen (akan kita buat nanti)
+    Navigator.pushNamed(
+      context,
+      '/chat',
+      arguments: {
+        'sellerId': _book!['user_id'],
+        'bookId': widget.bookId,
+        'sellerName': _seller?['full_name'] ?? 'Penjual',
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryGreen = Color(0xFF2E7D32);
+
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_book == null) {
+      return Scaffold(body: Center(child: Text('Buku tidak ditemukan')));
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        surfaceTintColor: Colors.white,
-
         leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: blue,
-            size: 19,
-          ),
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
         ),
-
         actions: [
           IconButton(
+            icon: const Icon(Icons.share_outlined, color: Colors.black87),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Buku ditambahkan ke favorit.')),
-              );
+              // Share functionality
             },
-            icon: const Icon(
-              Icons.favorite_border_rounded,
-              color: blue,
-              size: 21,
-            ),
           ),
-
-          IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fitur bagikan akan segera tersedia.'),
-                ),
-              );
-            },
-            icon: const Icon(Icons.share_rounded, color: blue, size: 19),
-          ),
-
-          const SizedBox(width: 4),
         ],
       ),
-
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ==================================================
-              // INFORMASI UTAMA BUKU
-              // ==================================================
-
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // COVER
-                  Container(
-                    width: 92,
-                    height: 125,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F7F5),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: book.fotoBuku != null && book.fotoBuku!.isNotEmpty
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: Gambar Buku + Info
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Gambar Buku
+                Container(
+                  width: 120,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _book!['image_url'] != null
                         ? Image.network(
-                            book.fotoBuku!,
+                            _book!['image_url'],
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.menu_book_rounded,
-                                size: 48,
-                                color: green,
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Icon(Icons.book, size: 50),
                               );
                             },
                           )
-                        : const Icon(
-                            Icons.menu_book_rounded,
-                            size: 48,
-                            color: green,
+                        : Container(
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.book, size: 50),
                           ),
                   ),
+                ),
+                const SizedBox(width: 16),
 
-                  const SizedBox(width: 13),
-
-                  // INFORMASI
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          book.judulBuku,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: blue,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
+                // Info Buku
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _book!['title'],
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          book.penulis ?? '-',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: greyText, fontSize: 11),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _book!['author'],
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
                         ),
+                      ),
+                      const SizedBox(height: 8),
 
-                        const SizedBox(height: 8),
-
-                        // RATING SESUAI MOCKUP
-                        Row(
-                          children: const [
-                            Icon(
-                              Icons.star_rounded,
-                              color: Color(0xFFFFC107),
-                              size: 15,
+                      // Rating (bisa ditambahkan nanti)
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 18),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '4.8',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
-                            SizedBox(width: 3),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '(120 ulasan)',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Harga & Status
+                      Row(
+                        children: [
+                          Text(
+                            'Rp${NumberFormat('#,##0').format(_book!['price'])}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              _book!['is_for_sale'] == true
+                                  ? 'Tersedia'
+                                  : 'Ditukar',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: primaryGreen,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Deskripsi
+            const Text(
+              'Deskripsi',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _book!['description'] ?? 'Tidak ada deskripsi',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+                height: 1.6,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Info Detail Buku
+            _buildInfoRow('Kategori', _book!['category'] ?? '-'),
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              'Tipe',
+              _book!['is_for_exchange'] == true ? 'Tukar' : 'Jual',
+            ),
+            const SizedBox(height: 12),
+            _buildInfoRow('Penulis', _book!['author'] ?? '-'),
+            const SizedBox(height: 12),
+            _buildInfoRow('Kondisi', _book!['condition'] ?? '-'),
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              'Diposting',
+              _book!['created_at'] != null
+                  ? DateFormat('dd MMM yyyy')
+                        .format(DateTime.parse(_book!['created_at']))
+                  : '-',
+            ),
+
+            const SizedBox(height: 24),
+
+            // Info Penjual
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Informasi Penjual',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: primaryGreen,
+                        radius: 20,
+                        child: Text(
+                          _seller?['full_name']?[0] ?? 'P',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              '4.8 (120 ulasan)',
-                              style: TextStyle(color: blue, fontSize: 10),
+                              _seller?['full_name'] ?? 'Penjual',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              _seller?['phone_number'] ?? '-',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
-
-                        const SizedBox(height: 8),
-
-                        if (book.jenisTransaksi == 'Jual' ||
-                            book.jenisTransaksi == 'Jual_Tukar')
-                          Text(
-                            _formatHarga(book.harga),
-                            style: const TextStyle(
-                              color: blue,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-
-                        if (book.jenisTransaksi == 'Tukar')
-                          const Text(
-                            'Tukar Buku',
-                            style: TextStyle(
-                              color: blue,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          book.statusBuku,
-                          style: const TextStyle(
-                            color: green,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+            ),
 
-              const SizedBox(height: 15),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
 
-              // ==================================================
-              // DESKRIPSI
-              // ==================================================
-              const Text(
-                'Deskripsi',
-                style: TextStyle(
-                  color: blue,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+      // Bottom Buttons
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _chatSeller,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: primaryGreen),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Chat Penjual',
+                  style: TextStyle(
+                    color: primaryGreen,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 5),
-
-              Text(
-                book.deskripsi?.isNotEmpty == true
-                    ? book.deskripsi!
-                    : 'Belum ada deskripsi buku.',
-                style: const TextStyle(
-                  color: blue,
-                  fontSize: 10.5,
-                  height: 1.45,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _isAddingToCart ? null : _addToCart,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              const Divider(height: 1, color: lightBorder),
-
-              const SizedBox(height: 13),
-
-              // ==================================================
-              // INFORMASI BUKU
-              // ==================================================
-              _infoRow(
-                'Kategori',
-                book.kategoriId != null ? 'Kategori #${book.kategoriId}' : '-',
-              ),
-
-              _infoRow('Tipe', _formatJenisTransaksi(book.jenisTransaksi)),
-
-              _infoRow('Penulis', book.penulis ?? '-'),
-
-              _infoRow('Penerbit', book.penerbit ?? '-'),
-
-              _infoRow('Kondisi', _formatKondisi(book.kondisiBuku)),
-
-              const SizedBox(height: 14),
-
-              // ==================================================
-              // TOMBOL
-              // ==================================================
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 42,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Chat Penjual akan segera tersedia.',
-                              ),
-                            ),
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: green,
-                          side: const BorderSide(color: green, width: 1.2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Chat Penjual',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                child: _isAddingToCart
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Beli Sekarang',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 9),
-
-                  Expanded(
-                    child: SizedBox(
-                      height: 42,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Buku ditambahkan untuk dibeli.'),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: green,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Beli Sekarang',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  static Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 70,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: blue,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
           ),
-
-          const Text(':', style: TextStyle(color: blue, fontSize: 10.5)),
-
-          const SizedBox(width: 8),
-
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: blue, fontSize: 10.5),
-            ),
+        ),
+        const Text(': ', style: TextStyle(color: Colors.grey)),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
