@@ -155,14 +155,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     Center(
                       child: Column(
                         children: [
-                          Image.asset(
-                            'assets/images/logo.png',
-                            width: 80,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.auto_stories,
-                              color: _green,
-                              size: 80,
+                          ColorFiltered(
+                            colorFilter: const ColorFilter.matrix(<double>[
+                              1,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                              0,
+                              -1.8,
+                              0,
+                              0,
+                              0,
+                              459,
+                            ]),
+                            child: Image.asset(
+                              'assets/images/logo.jpg.jpeg',
+                              width: 80,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.auto_stories,
+                                color: _green,
+                                size: 80,
+                              ),
                             ),
                           ),
                           Text(
