@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -76,13 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'bg': Color(0xFFFFE9CA),
       'fg': Color(0xFFE47712),
     },
-    {
-      'name': 'Lainnya',
-      'id': 8,
-      'icon': Icons.grid_view_rounded,
-      'bg': Color(0xFFE0F0FC),
-      'fg': Color(0xFF159BD7),
-    },
+    
   ];
 
   @override
@@ -293,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildAction(
                         icon: Icons.shopping_bag_outlined,
-                        label: 'Beli',
+                        label: 'Keranjang',
                         color: green,
                         onTap: () {
                           _searchController.clear();
@@ -333,33 +326,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // JUDUL KATEGORI
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Kategori',
+                  children: const [
+                    Text(
+                      'kategori',
                       style: TextStyle(
                         color: blue,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Pilih salah satu kategori untuk melihat buku.',
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Lihat Semua ›',
-                        style: TextStyle(
-                          color: green,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
                       ),
                     ),
                   ],
