@@ -31,7 +31,7 @@ class AuthService {
           'email': email,
           'nomor_hp': nomorHp,
           'alamat': alamat,
-          'password': password, // Catatan: Supabase Auth sudah handle password
+          'auth_id': response.user!.id,
         });
       }
 
