@@ -317,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 26),
+          const SizedBox(height: 50),
 
           // KATEGORI
           const Padding(
