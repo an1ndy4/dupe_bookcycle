@@ -13,47 +13,40 @@ class CartController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // ==================== GETTERS ====================
-
-  List<CartModel> get cartItems => _cartItems;
-
-  List<CartDetailModel> get cartDetails => _cartDetails;
+  List<CartModel> get cartItems => List.unmodifiable(_cartItems);
+  List<CartDetailModel> get cartDetails =>
+      List.unmodifiable(_cartDetails);
 
   bool get isLoading => _isLoading;
-
   String? get errorMessage => _errorMessage;
-
   bool get isEmpty => _cartItems.isEmpty;
 
-  // ==================== GET USER CART ====================
+  // ==================== FETCH CART ====================
 
   Future<void> fetchCart(int userId) async {
     _setLoading(true);
     _clearError();
 
     try {
-      _cartItems = await _cartService.getUserCart(userId);
-
-      _setLoading(false);
+      _cartItems = await _cartService.getCart(userId);
     } catch (e) {
       _setError(e.toString());
+    } finally {
       _setLoading(false);
     }
   }
 
-  // ==================== GET CART DETAILS ====================
+  // ==================== FETCH CART DETAILS ====================
 
-  Future<void> fetchCartDetails(int keranjangId) async {
+  Future<void> fetchCartDetails(int userId) async {
     _setLoading(true);
     _clearError();
 
     try {
-      _cartDetails =
-          await _cartService.getCartDetails(keranjangId);
-
-      _setLoading(false);
+      _cartDetails = await _cartService.getCartDetails(userId);
     } catch (e) {
       _setError(e.toString());
+    } finally {
       _setLoading(false);
     }
   }
@@ -63,89 +56,86 @@ class CartController extends ChangeNotifier {
   Future<bool> addToCart({
     required int userId,
     required int bukuId,
-    int jumlah = 1,
+    required int harga,
   }) async {
     _setLoading(true);
     _clearError();
 
     try {
-      final newItem = await _cartService.addToCart(
+      await _cartService.addToCart(
         userId: userId,
         bukuId: bukuId,
-        jumlah: jumlah,
+        harga: harga,
       );
 
-      final index = _cartItems.indexWhere(
-        (item) => item.keranjangId == newItem.keranjangId,
-      );
+      // Muat ulang agar state sesuai database.
+      _cartItems = await _cartService.getCart(userId);
+      _cartDetails = await _cartService.getCartDetails(userId);
 
-      if (index != -1) {
-        _cartItems[index] = newItem;
-      } else {
-        _cartItems.insert(0, newItem);
-      }
-
-      _setLoading(false);
       return true;
     } catch (e) {
       _setError(e.toString());
-      _setLoading(false);
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
   // ==================== UPDATE QUANTITY ====================
 
   Future<bool> updateQuantity({
-    required int keranjangId,
+    required int userId,
+    required int bukuId,
     required int jumlah,
+    required int harga,
   }) async {
     _setLoading(true);
     _clearError();
 
     try {
-      final updatedItem =
-          await _cartService.updateCartQuantity(
-        keranjangId: keranjangId,
+      await _cartService.updateQuantity(
+        userId: userId,
+        bukuId: bukuId,
         jumlah: jumlah,
+        harga: harga,
       );
 
-      final index = _cartItems.indexWhere(
-        (item) => item.keranjangId == keranjangId,
-      );
+      _cartItems = await _cartService.getCart(userId);
+      _cartDetails = await _cartService.getCartDetails(userId);
 
-      if (index != -1) {
-        _cartItems[index] = updatedItem;
-      }
-
-      _setLoading(false);
       return true;
     } catch (e) {
       _setError(e.toString());
-      _setLoading(false);
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
   // ==================== REMOVE FROM CART ====================
 
-  Future<bool> removeFromCart(int keranjangId) async {
+  Future<bool> removeFromCart({
+    required int userId,
+    required int bukuId,
+  }) async {
     _setLoading(true);
     _clearError();
 
     try {
-      await _cartService.removeFromCart(keranjangId);
-
-      _cartItems.removeWhere(
-        (item) => item.keranjangId == keranjangId,
+      await _cartService.removeFromCart(
+        userId: userId,
+        bukuId: bukuId,
       );
 
-      _setLoading(false);
+      _cartItems.removeWhere((item) => item.bukuId == bukuId);
+      _cartDetails.removeWhere((item) => item.bukuId == bukuId);
+
       return true;
     } catch (e) {
       _setError(e.toString());
-      _setLoading(false);
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
@@ -161,99 +151,12 @@ class CartController extends ChangeNotifier {
       _cartItems.clear();
       _cartDetails.clear();
 
-      _setLoading(false);
       return true;
     } catch (e) {
       _setError(e.toString());
-      _setLoading(false);
       return false;
-    }
-  }
-
-  // ==================== ADD CART DETAIL ====================
-
-  Future<bool> addCartDetail({
-    required int keranjangId,
-    required int bukuId,
-    required int jumlah,
-    required int subtotal,
-  }) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final detail = await _cartService.addCartDetail(
-        keranjangId: keranjangId,
-        bukuId: bukuId,
-        jumlah: jumlah,
-        subtotal: subtotal,
-      );
-
-      _cartDetails.insert(0, detail);
-
+    } finally {
       _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
-      return false;
-    }
-  }
-
-  // ==================== UPDATE CART DETAIL ====================
-
-  Future<bool> updateCartDetail({
-    required int detailId,
-    required int jumlah,
-    required int subtotal,
-  }) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final updatedDetail =
-          await _cartService.updateCartDetail(
-        detailId: detailId,
-        jumlah: jumlah,
-        subtotal: subtotal,
-      );
-
-      final index = _cartDetails.indexWhere(
-        (detail) => detail.detailId == detailId,
-      );
-
-      if (index != -1) {
-        _cartDetails[index] = updatedDetail;
-      }
-
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
-      return false;
-    }
-  }
-
-  // ==================== DELETE CART DETAIL ====================
-
-  Future<bool> deleteCartDetail(int detailId) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      await _cartService.deleteCartDetail(detailId);
-
-      _cartDetails.removeWhere(
-        (detail) => detail.detailId == detailId,
-      );
-
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
-      return false;
     }
   }
 

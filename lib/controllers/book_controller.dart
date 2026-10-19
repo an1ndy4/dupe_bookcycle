@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/book_model.dart';
 import '../services/book_service.dart';
 
@@ -131,22 +132,14 @@ class BookController extends ChangeNotifier {
 
   // ==================== UPDATE BOOK ====================
 
-  Future<bool> updateBook(
-    int bukuId,
-    Map<String, dynamic> updates,
-  ) async {
+  Future<bool> updateBook(int bukuId, Map<String, dynamic> updates) async {
     _setLoading(true);
     _clearError();
 
     try {
-      final updatedBook = await _bookService.updateBook(
-        bukuId,
-        updates,
-      );
+      final updatedBook = await _bookService.updateBook(bukuId, updates);
 
-      final index = _books.indexWhere(
-        (book) => book.bukuId == bukuId,
-      );
+      final index = _books.indexWhere((book) => book.bukuId == bukuId);
 
       if (index != -1) {
         _books[index] = updatedBook;
@@ -172,13 +165,9 @@ class BookController extends ChangeNotifier {
     try {
       await _bookService.deleteBook(bukuId);
 
-      _books.removeWhere(
-        (book) => book.bukuId == bukuId,
-      );
+      _books.removeWhere((book) => book.bukuId == bukuId);
 
-      _filteredBooks.removeWhere(
-        (book) => book.bukuId == bukuId,
-      );
+      _filteredBooks.removeWhere((book) => book.bukuId == bukuId);
 
       _setLoading(false);
       return true;
