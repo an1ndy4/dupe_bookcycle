@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../controllers/book_controller.dart';
 import '../../controllers/category_controller.dart';
 import '../book/sell_book_screen.dart';
@@ -209,7 +208,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // BANNER
+          // =================================================
+          // BANNER BOOKCYCLE
+          // Gambar menggunakan aset lokal, bukan Google Drive.
+          // =================================================
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Container(
@@ -229,14 +231,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Stack(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      14, 12, 130, 12,
+                  // TULISAN DI SEBELAH KIRI
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      14,
+                      12,
+                      130,
+                      12,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Buku baru,\ncerita baru!',
                           style: TextStyle(
@@ -259,18 +265,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+
+                  // GAMBAR BUKU DI SEBELAH KANAN
                   Positioned(
                     right: 8,
                     top: 8,
                     bottom: 8,
                     width: 125,
                     child: Center(
-                      child: Image.network(
-                        'https://drive.google.com/uc?export=view&id=11V5J79InUBqv-cWryg_ze5y19v2o6yfa',
+                      child: Image.asset(
+                        'assets/images/book_bunner.png',
                         width: 120,
                         height: 120,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) {
+                        errorBuilder: (
+                          context,
+                          error,
+                          stackTrace,
+                        ) {
                           return const Icon(
                             Icons.menu_book_rounded,
                             color: Colors.white,
@@ -464,6 +476,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // =========================================================
+  // MENU ITEM: BELI, JUAL, TUKAR
+  // =========================================================
   Widget _menuItem({
     required IconData icon,
     required String label,
