@@ -1,527 +1,300 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart';
 
-import '../../controllers/transaction_controller.dart';
-import '../../controllers/payment_controller.dart';
-
-class CheckoutScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> cartItems;
-  final double totalPrice;
-
-  const CheckoutScreen({
-    super.key,
-    required this.cartItems,
-    required this.totalPrice,
-  });
+class ExchangeBookScreen extends StatefulWidget {
+  const ExchangeBookScreen({Key? key}) : super(key: key);
 
   @override
-  State<CheckoutScreen> createState() => _CheckoutScreenState();
+  State<ExchangeBookScreen> createState() => _ExchangeBookScreenState();
 }
 
-class _CheckoutScreenState extends State<CheckoutScreen> {
+class _ExchangeBookScreenState extends State<ExchangeBookScreen> {
   final _supabase = Supabase.instance.client;
-  final _formKey = GlobalKey<FormState>();
-  final _addressController = TextEditingController();
-
-  final TransactionController _transactionController = TransactionController();
-
-  final PaymentController _paymentController = PaymentController();
-
-  String _selectedPayment = 'transfer';
-  bool _isProcessing = false;
-  int _currentStep = 0;
-
-  final List<Map<String, Object>> _paymentMethods = [
-    {
-      'id': 'transfer',
-      'name': 'Transfer Bank',
-      'icon': Icons.account_balance,
-      'databaseValue': 'Transfer_Bank',
-    },
-    {
-      'id': 'ewallet',
-      'name': 'E-Wallet (OVO, DANA, GoPay)',
-      'icon': Icons.account_balance_wallet,
-      'databaseValue': 'E-Wallet',
-    },
-    {
-      'id': 'cod',
-      'name': 'COD (Bayar di Tempat)',
-      'icon': Icons.money,
-      'databaseValue': 'COD',
-    },
-  ];
+  String _selectedCategory = 'Semua';
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _books = [];
+  bool _isLoading = true;
 
   @override
-  void dispose() {
-    _addressController.dispose();
-    _transactionController.dispose();
-    _paymentController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchBooks();
   }
 
-  // ==================== PAYMENT METHOD ====================
-
-  String get _databasePaymentMethod {
-    final method = _paymentMethods.firstWhere(
-      (item) => item['id'] == _selectedPayment,
-    );
-
-    return method['databaseValue'] as String;
-  }
-
-  // ==================== CART ITEM HELPERS ====================
-
-  Map<String, dynamic> _getBook(Map<String, dynamic> item) {
-    final dynamic nestedBook = item['books'] ?? item['buku'] ?? item['book'];
-
-    if (nestedBook is Map) {
-      return Map<String, dynamic>.from(nestedBook);
-    }
-
-    return item;
-  }
-
-  int _getQuantity(Map<String, dynamic> item) {
-    final value = item['quantity'] ?? item['jumlah'] ?? 1;
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(value.toString()) ?? 1;
-  }
-
-  num _getBookPrice(Map<String, dynamic> book) {
-    final value = book['price'] ?? book['harga'] ?? 0;
-
-    if (value is num) {
-      return value;
-    }
-
-    return num.tryParse(value.toString()) ?? 0;
-  }
-
-  String _getBookTitle(Map<String, dynamic> book) {
-    return (book['title'] ?? book['judul_buku'] ?? book['judul'] ?? 'Buku')
-        .toString();
-  }
-
-  // ==================== PROCESS CHECKOUT ====================
-
-  Future<void> _processOrder() async {
-    if (_isProcessing) return;
-
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_supabase.auth.currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan login terlebih dahulu.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isProcessing = true;
-    });
+  Future<void> _fetchBooks() async {
+    setState(() => _isLoading = true);
 
     try {
-      // 1. Proses checkout melalui RPC.
-      // Transaksi, detail transaksi, pembayaran, dan pengosongan
-      // keranjang ditangani oleh database dalam satu proses atomik.
-      final result = await _transactionController.checkoutBookcycle(
-        alamatPengiriman: _addressController.text.trim(),
-        metodePembayaran: _databasePaymentMethod,
-      );
+      var query = _supabase
+          .from('books')
+          .select('*, profiles(full_name)')
+          .eq('is_for_exchange', true)
+          .neq('user_id', _supabase.auth.currentUser!.id); // Bukan buku sendiri
 
-      if (result == null) {
-        throw Exception(
-          _transactionController.errorMessage ??
-              'Checkout gagal. Silakan coba kembali.',
+      if (_selectedCategory != 'Semua') {
+        query = query.eq('category', _selectedCategory);
+      }
+
+      if (_searchController.text.isNotEmpty) {
+        query = query.or(
+          'title.ilike.%${_searchController.text}%,author.ilike.%${_searchController.text}%',
         );
       }
 
-      // 2. Ambil ID transaksi dari hasil RPC.
-      final rawTransactionId = result['transaksi_id'];
-
-      if (rawTransactionId is! num) {
-        throw Exception('ID transaksi tidak ditemukan pada hasil checkout.');
-      }
-
-      final int transaksiId = rawTransactionId.toInt();
-
-      // 3. Ambil data pembayaran yang dibuat oleh RPC.
-      // Kegagalan mengambil data pembayaran tidak membatalkan
-      // transaksi yang sudah berhasil disimpan.
-      await _paymentController.fetchPayment(transaksiId);
-
-      if (!mounted) return;
-
-      // 4. Gunakan total resmi dari database.
-      final rawTotal = result['total_harga'];
-
-      final double checkoutTotal = rawTotal is num
-          ? rawTotal.toDouble()
-          : widget.totalPrice;
+      final response = await query.order('created_at', ascending: false);
 
       setState(() {
-        _currentStep = 2;
+        _books = List<Map<String, dynamic>>.from(response);
+        _isLoading = false;
       });
-
-      // 5. Tampilkan konfirmasi keberhasilan.
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2E7D32),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 40),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Pesanan Berhasil!',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Total: Rp${NumberFormat('#,##0', 'id_ID').format(checkoutTotal)}',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Nomor transaksi: $transaksiId',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  // Tutup dialog.
-                  Navigator.of(dialogContext).pop();
-
-                  // Kembali dari checkout.
-                  Navigator.of(context).pop();
-
-                  // Kembali dari keranjang.
-                  Navigator.of(context).pop();
-                },
-                child: const Text(
-                  'Selesai',
-                  style: TextStyle(
-                    color: Color(0xFF2E7D32),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      );
     } catch (e) {
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal memproses pesanan: $e'),
+            content: Text('Gagal load data: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
     }
   }
 
-  // ==================== BUILD UI ====================
+  void _selectBook(Map<String, dynamic> book) {
+    // Return book data ke halaman sebelumnya
+    Navigator.pop(context, book);
+  }
 
   @override
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF2E7D32);
+    final categories = [
+      'Semua',
+      'Fiksi',
+      'Non Fiksi',
+      'Pelajaran',
+      'Komik',
+      'Self Help',
+    ];
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 1,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: _isProcessing ? null : () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Checkout',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          'Pilih Buku untuk Ditukar',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        centerTitle: true,
       ),
-      body: _isProcessing
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Stepper
-                    Row(
+      body: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Cari judul, penulis, atau kategori',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _fetchBooks();
+                  },
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+              onChanged: (value) => _fetchBooks(),
+            ),
+          ),
+
+          // Category Filter Chips
+          SizedBox(
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                final isSelected = _selectedCategory == category;
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() => _selectedCategory = category);
+                      _fetchBooks();
+                    },
+                    selectedColor: primaryGreen,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontSize: 12,
+                    ),
+                    backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // List Buku
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _books.isEmpty
+                ? Center(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildStepIndicator(1, 'Alamat'),
-                        const Expanded(child: Divider()),
-                        _buildStepIndicator(2, 'Pembayaran'),
-                        const Expanded(child: Divider()),
-                        _buildStepIndicator(3, 'Selesai'),
+                        Icon(
+                          Icons.book_outlined,
+                          size: 64,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tidak ada buku untuk ditukar',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
                       ],
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Alamat Pengiriman
-                    const Text(
-                      'Alamat Pengiriman',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    TextFormField(
-                      controller: _addressController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: 'Masukkan alamat lengkap pengiriman',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: primaryGreen,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Alamat wajib diisi';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Metode Pembayaran
-                    const Text(
-                      'Metode Pembayaran',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    ..._paymentMethods.map((method) {
-                      final methodId = method['id'] as String;
-                      final methodName = method['name'] as String;
-                      final methodIcon = method['icon'] as IconData;
-
-                      final isSelected = _selectedPayment == methodId;
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? primaryGreen
-                                : Colors.grey[300]!,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: RadioListTile<String>(
-                          value: methodId,
-                          groupValue: _selectedPayment,
-                          onChanged: (value) {
-                            if (value == null) return;
-
-                            setState(() {
-                              _selectedPayment = value;
-                            });
-                          },
-                          activeColor: primaryGreen,
-                          title: Text(methodName),
-                          secondary: Icon(methodIcon, color: primaryGreen),
-                        ),
-                      );
-                    }),
-
-                    const SizedBox(height: 24),
-
-                    // Ringkasan Pesanan
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Ringkasan Pesanan',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          const Divider(),
-
-                          ...widget.cartItems.map((item) {
-                            final book = _getBook(item);
-                            final qty = _getQuantity(item);
-
-                            final price = _getBookPrice(book) * qty;
-
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${_getBookTitle(book)} x$qty',
-                                      style: const TextStyle(fontSize: 12),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Rp${NumberFormat('#,##0', 'id_ID').format(price)}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-
-                          const Divider(),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Total',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'Rp${NumberFormat('#,##0', 'id_ID').format(widget.totalPrice)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryGreen,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Tombol Bayar
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _processOrder,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        child: const Text('Bayar Sekarang'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _books.length,
+                    itemBuilder: (context, index) {
+                      final book = _books[index];
+                      return _buildBookCard(context, book, primaryGreen);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
-  // ==================== STEP INDICATOR ====================
-
-  Widget _buildStepIndicator(int step, String label) {
-    final isActive = _currentStep >= step - 1;
-
-    return Column(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF2E7D32) : Colors.grey[300],
-            shape: BoxShape.circle,
+  Widget _buildBookCard(
+    BuildContext context,
+    Map<String, dynamic> book,
+    Color primaryGreen,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Center(
-            child: Text(
-              '$step',
-              style: TextStyle(
-                color: isActive ? Colors.white : Colors.grey[600],
-                fontWeight: FontWeight.bold,
-              ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Gambar Buku
+          Container(
+            width: 60,
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: book['image_url'] != null
+                  ? Image.network(
+                      book['image_url'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(color: Colors.grey[200]);
+                      },
+                    )
+                  : Container(color: Colors.grey[200]),
             ),
           ),
-        ),
+          const SizedBox(width: 12),
 
-        const SizedBox(height: 4),
-
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: isActive ? const Color(0xFF2E7D32) : Colors.grey,
+          // Info Buku
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  book['title'],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  book['author'],
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Kondisi: ${book['condition']}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pemilik: ${book['profiles']?['full_name'] ?? 'Unknown'}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+
+          // Tombol Pilih
+          ElevatedButton(
+            onPressed: () => _selectBook(book),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text('Pilih'),
+          ),
+        ],
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }
