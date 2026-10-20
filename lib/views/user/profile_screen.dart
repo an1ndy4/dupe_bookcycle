@@ -454,28 +454,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-
-          Card(
-            color: cardColor,
-            child: ListTile(
-              leading: const Icon(
-                Icons.info_outline,
-                color: green,
-              ),
-              title: Text(
-                'Versi Aplikasi',
-                style: TextStyle(color: textColor),
-              ),
-              subtitle: Text(
-                'BookCycle 1.0.0',
-                style: TextStyle(
-                  color: darkModeEnabled
-                      ? Colors.white70
-                      : Colors.blueGrey,
-                ),
-              ),
-            ),
-          ),
+          
         ],
       ),
     );
