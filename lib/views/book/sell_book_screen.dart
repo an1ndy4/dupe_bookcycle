@@ -1,9 +1,12 @@
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../controllers/book_controller.dart';
+import '../../models/book_model.dart';
 
 class SellBookScreen extends StatefulWidget {
   const SellBookScreen({Key? key}) : super(key: key);
@@ -13,40 +16,44 @@ class SellBookScreen extends StatefulWidget {
 }
 
 class _SellBookScreenState extends State<SellBookScreen> {
-  final _supabase = Supabase.instance.client;
-  final _formKey = GlobalKey<FormState>();
-  final _imagePicker = ImagePicker();
+  final SupabaseClient _supabase = Supabase.instance.client;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ImagePicker _imagePicker = ImagePicker();
 
-  // 🎛️ Controllers
-  final _titleController = TextEditingController();
-  final _authorController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _authorController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
-  // 📦 State Variables
+  XFile? _bookImage;
+  Uint8List? _bookImageBytes;
+
   String? _selectedCategory;
   String? _selectedCondition;
-  File? _bookImage;
   bool _isUploading = false;
 
-  // 📋 Opsi Dropdown
-  final List<String> _categories = [
-    'Fiksi',
-    'Non Fiksi',
-    'Pelajaran',
-    'Komik',
-    'Self Help',
-    'Teknologi',
-    'Bisnis',
-    'Lainnya',
-  ];
+  // ID kategori berdasarkan hasil pemeriksaan database Supabase.
+  static const Map<String, int> _categoryIds = {
+    'Kuliah': 11,
+    'Novel': 12,
+    'Anak-anak': 13,
+    'Komik': 14,
+    'Umum': 15,
+    'Pelajaran': 16,
+    'Biografi': 17,
+    'Sejarah': 18,
+  };
 
-  final List<String> _conditions = [
-    'Sangat Baik (Seperti Baru)',
-    'Baik (Ada sedikit catatan)',
-    'Cukup Baik (Ada highlight)',
-    'Kurang Baik (Ada sobekan kecil)',
-  ];
+  // Label tampilan dipetakan ke nilai enum database.
+  static const Map<String, String> _conditionValues = {
+    'Sangat Baik (Seperti Baru)': 'Baru',
+    'Baik (Ada sedikit catatan)': 'Bekas_Layak',
+    'Cukup Baik (Ada highlight)': 'Bekas_Cukup',
+  };
+
+  List<String> get _categories => _categoryIds.keys.toList();
+
+  List<String> get _conditions => _conditionValues.keys.toList();
 
   @override
   void dispose() {
@@ -57,87 +64,206 @@ class _SellBookScreenState extends State<SellBookScreen> {
     super.dispose();
   }
 
-  // 📸 Fungsi Pilih Gambar (Kamera / Galeri)
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: source,
-      maxWidth: 1080, // Kompres otomatis agar upload cepat
-      maxHeight: 1080,
-      imageQuality: 85,
-    );
+  // =========================================================
+  // PILIH FOTO
+  // =========================================================
 
-    if (image != null) {
-      setState(() => _bookImage = File(image.path));
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      final Uint8List bytes = await image.readAsBytes();
+
+      if (!mounted) return;
+
+      setState(() {
+        _bookImage = image;
+        _bookImageBytes = bytes;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memilih gambar: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   void _showImageSourceDialog() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Pilih Sumber Foto',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Pilih Sumber Foto',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: Color(0xFF2E7D32)),
-              title: const Text('Ambil dari Kamera'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.photo_library,
-                color: Color(0xFF2E7D32),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF2E7D32)),
+                title: const Text('Ambil dari Kamera'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickImage(ImageSource.camera);
+                },
               ),
-              title: const Text('Pilih dari Galeri'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: Color(0xFF2E7D32),
+                ),
+                title: const Text('Pilih dari Galeri'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  // ☁️ Upload Foto ke Supabase Storage
-  Future<String?> _uploadImageToSupabase(File imageFile) async {
+  // =========================================================
+  // UPLOAD FOTO KE SUPABASE STORAGE
+  // =========================================================
+
+  Future<({String path, String publicUrl})> _uploadImageToSupabase(
+    XFile imageFile,
+  ) async {
+    final authUser = _supabase.auth.currentUser;
+
+    if (authUser == null) {
+      throw Exception('Pengguna belum login.');
+    }
+
+    final int dotIndex = imageFile.name.lastIndexOf('.');
+
+    final String extension = dotIndex >= 0
+        ? imageFile.name.substring(dotIndex + 1).toLowerCase()
+        : 'jpg';
+
+    const Set<String> allowedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
+
+    if (!allowedExtensions.contains(extension)) {
+      throw Exception(
+        'Format foto tidak didukung. '
+        'Gunakan JPG, JPEG, PNG, atau WEBP.',
+      );
+    }
+
+    final String contentType = switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+
+    final String fileName =
+        'book_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+    final String filePath = 'books/${authUser.id}/$fileName';
+
+    final Uint8List bytes = await imageFile.readAsBytes();
+
+    await _supabase.storage
+        .from('book-images')
+        .uploadBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(contentType: contentType, upsert: false),
+        );
+
+    final String publicUrl = _supabase.storage
+        .from('book-images')
+        .getPublicUrl(filePath);
+
+    return (path: filePath, publicUrl: publicUrl);
+  }
+
+  // Membersihkan foto apabila penyimpanan database gagal.
+  Future<void> _deleteUploadedImage(String filePath) async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
-      final fileName =
-          'book_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final filePath = 'books/$fileName';
-
-      await _supabase.storage.from('book-images').upload(filePath, imageFile);
-
-      return _supabase.storage.from('book-images').getPublicUrl(filePath);
+      await _supabase.storage.from('book-images').remove([filePath]);
     } catch (e) {
-      debugPrint('Error Upload Storage: $e');
-      return null;
+      debugPrint('Gagal membersihkan foto: $e');
     }
   }
 
-  // 💾 Submit Data Buku ke Database
+  // =========================================================
+  // SIMPAN BUKU MELALUI CONTROLLER DAN SERVICE
+  // =========================================================
+
   Future<void> _submitBook() async {
+    if (_isUploading) return;
+
     if (!_formKey.currentState!.validate()) return;
-    if (_bookImage == null) {
+
+    if (_bookImage == null || _bookImageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ Foto buku wajib diupload!'),
+          content: Text('Foto buku wajib dipilih.'),
           backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Validasi harga sebelum upload foto.
+    final String rawPrice = _priceController.text.replaceAll(
+      RegExp(r'[.,\s]'),
+      '',
+    );
+
+    final int? price = int.tryParse(rawPrice);
+
+    if (price == null || price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Masukkan harga berupa angka yang lebih besar dari 0.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final int? categoryId = _categoryIds[_selectedCategory];
+
+    final String? condition = _conditionValues[_selectedCondition];
+
+    if (categoryId == null || condition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kategori atau kondisi buku tidak valid.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_supabase.auth.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi login tidak ditemukan. Silakan login kembali.'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -145,57 +271,80 @@ class _SellBookScreenState extends State<SellBookScreen> {
 
     setState(() => _isUploading = true);
 
+    String? uploadedImagePath;
+
     try {
-      // 1. Upload Foto
-      final imageUrl = await _uploadImageToSupabase(_bookImage!);
-      if (imageUrl == null)
+      // 1. Upload foto ke Supabase Storage.
+      final uploadedImage = await _uploadImageToSupabase(_bookImage!);
+
+      uploadedImagePath = uploadedImage.path;
+
+      // 2. Bentuk model berdasarkan kolom tabel public.buku.
+      final BookModel book = BookModel(
+        judulBuku: _titleController.text.trim(),
+        penulis: _authorController.text.trim(),
+        kategoriId: categoryId,
+        kondisiBuku: condition,
+        deskripsi: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        harga: price,
+        jenisTransaksi: 'Jual',
+        fotoBuku: uploadedImage.publicUrl,
+        statusBuku: 'Tersedia',
+      );
+
+      // 3. Simpan melalui BookController.
+      // Controller akan memanggil BookService.
+      final BookController controller = context.read<BookController>();
+
+      final bool success = await controller.addBook(book);
+
+      if (!success) {
         throw Exception(
-          'Gagal mengupload foto. Cek koneksi atau policy storage.',
+          controller.errorMessage ?? 'Database menolak penyimpanan buku.',
         );
+      }
 
-      // 2. Parse Harga
-      final rawPrice = _priceController.text
-          .replaceAll('.', '')
-          .replaceAll(',', '');
-      final price = int.tryParse(rawPrice);
-      if (price == null) throw Exception('Format harga tidak valid.');
-
-      // 3. Insert ke Database
-      await _supabase.from('books').insert({
-        'user_id': _supabase.auth.currentUser!.id,
-        'title': _titleController.text.trim(),
-        'author': _authorController.text.trim(),
-        'category': _selectedCategory,
-        'condition': _selectedCondition,
-        'price': price,
-        'description': _descriptionController.text.trim(),
-        'image_url': imageUrl,
-        'is_for_sale': true,
-        'is_for_exchange': false,
-      });
+      // Database berhasil menyimpan buku.
+      // Jangan hapus foto yang sudah digunakan.
+      uploadedImagePath = null;
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✅ Buku berhasil diunggah!'),
+          content: Text('Buku berhasil diunggah.'),
           backgroundColor: Color(0xFF2E7D32),
         ),
       );
+
       Navigator.pop(context);
     } catch (e) {
+      // Jika database gagal, hapus foto yang terlanjur diunggah.
+      if (uploadedImagePath != null) {
+        await _deleteUploadedImage(uploadedImagePath);
+      }
+
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Gagal: $e'),
+          content: Text('Gagal menyimpan buku: $e'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 5),
         ),
       );
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
   }
+
+  // =========================================================
+  // TAMPILAN FORMULIR
+  // =========================================================
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +357,7 @@ class _SellBookScreenState extends State<SellBookScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isUploading ? null : () => Navigator.pop(context),
         ),
         title: const Text(
           'Jual Buku',
@@ -229,10 +378,10 @@ class _SellBookScreenState extends State<SellBookScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 🖼️ Area Upload Foto
+                    // Area upload foto.
                     Center(
                       child: GestureDetector(
-                        onTap: _isUploading ? null : _showImageSourceDialog,
+                        onTap: _showImageSourceDialog,
                         child: Container(
                           width: double.infinity,
                           height: 200,
@@ -240,32 +389,23 @@ class _SellBookScreenState extends State<SellBookScreen> {
                             color: Colors.grey[50],
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: _bookImage != null
+                              color: _bookImageBytes != null
                                   ? primaryGreen
                                   : Colors.grey[300]!,
                               width: 2,
-                              style: BorderStyle.solid,
                             ),
                           ),
-                          child: _bookImage != null
+                          child: _bookImageBytes != null
                               ? Stack(
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(14),
-                                      // ✅ PERBAIKAN: Support Web & Mobile
-                                      child: kIsWeb
-                                          ? Image.memory(
-                                              _bookImage!.readAsBytesSync(),
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                            )
-                                          : Image.file(
-                                              _bookImage!,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                            ),
+                                      child: Image.memory(
+                                        _bookImageBytes!,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      ),
                                     ),
                                     Positioned(
                                       bottom: 10,
@@ -273,7 +413,6 @@ class _SellBookScreenState extends State<SellBookScreen> {
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          // ✅ PERBAIKAN: withValues untuk menghindari warning deprecated
                                           color: Colors.black.withValues(
                                             alpha: 0.6,
                                           ),
@@ -298,7 +437,7 @@ class _SellBookScreenState extends State<SellBookScreen> {
                                       decoration: BoxDecoration(
                                         color: primaryGreen.withValues(
                                           alpha: 0.1,
-                                        ), // ✅ PERBAIKAN
+                                        ),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
@@ -329,45 +468,53 @@ class _SellBookScreenState extends State<SellBookScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 24),
 
-                    // 📝 Input Fields
                     _buildTextField(
                       'Judul Buku',
                       _titleController,
                       'Masukkan judul buku',
                     ),
+
                     const SizedBox(height: 16),
+
                     _buildTextField(
                       'Penulis',
                       _authorController,
                       'Masukkan nama penulis',
                     ),
+
                     const SizedBox(height: 16),
 
-                    // 🏷️ Kategori & Kondisi
                     _buildDropdown(
                       'Kategori',
                       _selectedCategory,
                       _categories,
                       'Pilih kategori buku',
-                      (val) {
-                        setState(() => _selectedCategory = val);
+                      (value) {
+                        setState(() {
+                          _selectedCategory = value;
+                        });
                       },
                     ),
+
                     const SizedBox(height: 16),
+
                     _buildDropdown(
                       'Kondisi Buku',
                       _selectedCondition,
                       _conditions,
                       'Pilih kondisi buku',
-                      (val) {
-                        setState(() => _selectedCondition = val);
+                      (value) {
+                        setState(() {
+                          _selectedCondition = value;
+                        });
                       },
                     ),
+
                     const SizedBox(height: 16),
 
-                    // 💰 Harga
                     _buildTextField(
                       'Harga Jual',
                       _priceController,
@@ -375,9 +522,9 @@ class _SellBookScreenState extends State<SellBookScreen> {
                       isNumber: true,
                       prefix: 'Rp ',
                     ),
+
                     const SizedBox(height: 16),
 
-                    // 📖 Deskripsi
                     const Text(
                       'Deskripsi',
                       style: TextStyle(
@@ -386,7 +533,9 @@ class _SellBookScreenState extends State<SellBookScreen> {
                         color: Colors.black87,
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     TextFormField(
                       controller: _descriptionController,
                       maxLines: 4,
@@ -404,9 +553,9 @@ class _SellBookScreenState extends State<SellBookScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 30),
 
-                    // 🚀 Tombol Unggah
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -426,6 +575,7 @@ class _SellBookScreenState extends State<SellBookScreen> {
                         child: const Text('Unggah Buku'),
                       ),
                     ),
+
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -434,7 +584,10 @@ class _SellBookScreenState extends State<SellBookScreen> {
     );
   }
 
-  // 🛠️ Helper Widget untuk TextField
+  // =========================================================
+  // TEXT FIELD
+  // =========================================================
+
   Widget _buildTextField(
     String label,
     TextEditingController controller,
@@ -453,7 +606,9 @@ class _SellBookScreenState extends State<SellBookScreen> {
             color: Colors.black87,
           ),
         ),
+
         const SizedBox(height: 8),
+
         TextFormField(
           controller: controller,
           keyboardType: isNumber ? TextInputType.number : TextInputType.text,
@@ -466,19 +621,28 @@ class _SellBookScreenState extends State<SellBookScreen> {
               borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 2),
             ),
           ),
-          validator: (v) => v!.isEmpty ? '$label wajib diisi' : null,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return '$label wajib diisi';
+            }
+
+            return null;
+          },
         ),
       ],
     );
   }
 
-  // 🛠️ Helper Widget untuk Dropdown
+  // =========================================================
+  // DROPDOWN
+  // =========================================================
+
   Widget _buildDropdown(
     String label,
     String? value,
     List<String> items,
     String hint,
-    Function(String?) onChanged,
+    ValueChanged<String?> onChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -491,7 +655,9 @@ class _SellBookScreenState extends State<SellBookScreen> {
             color: Colors.black87,
           ),
         ),
+
         const SizedBox(height: 8),
+
         DropdownButtonFormField<String>(
           value: value,
           decoration: InputDecoration(
@@ -503,10 +669,19 @@ class _SellBookScreenState extends State<SellBookScreen> {
             ),
           ),
           items: items
-              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+              .map(
+                (item) =>
+                    DropdownMenuItem<String>(value: item, child: Text(item)),
+              )
               .toList(),
           onChanged: onChanged,
-          validator: (v) => v == null ? '$label wajib dipilih' : null,
+          validator: (selectedValue) {
+            if (selectedValue == null) {
+              return '$label wajib dipilih';
+            }
+
+            return null;
+          },
         ),
       ],
     );
