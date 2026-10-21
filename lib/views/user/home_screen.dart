@@ -20,9 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color green = Color(0xFF087F3E);
   static const Color blue = Color(0xFF092B8F);
 
-  final TextEditingController _searchController =
-      TextEditingController();
-
+  final TextEditingController _searchController = TextEditingController();
   int _selectedIndex = 0;
 
   final List<Map<String, dynamic>> categories = [
@@ -31,12 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
       'name': 'Fiksi',
       'icon': Icons.auto_stories_rounded,
       'color': Color(0xFFE1F4E8),
-    },
-    {
-      'id': 2,
-      'name': 'Non Fiksi',
-      'icon': Icons.menu_book_rounded,
-      'color': Color(0xFFFFE8D5),
     },
     {
       'id': 3,
@@ -73,10 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-
       context.read<BookController>().fetchAllBooks();
       context.read<CategoryController>().fetchAllCategories();
     });
@@ -96,10 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CategoryScreen(
-          kategoriId: id,
-          namaKategori: name,
-        ),
+        builder: (_) => CategoryScreen(kategoriId: id, namaKategori: name),
       ),
     );
   }
@@ -107,13 +94,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openBookList({required bool forSale}) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => BookListScreen(forSale: forSale),
-      ),
+      MaterialPageRoute(builder: (_) => BookListScreen(forSale: forSale)),
     );
   }
 
-  // Navigasi bawah tetap berada di dalam Scaffold yang sama.
   void _onBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -124,7 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,
@@ -136,8 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-
-      // NAVIGASI BAWAH
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTap,
@@ -169,38 +150,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // =========================================================
-  // KONTEN HOME
-  // =========================================================
   Widget _buildHomeContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // =================================================
           // SEARCH BAR
-          // =================================================
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
             child: TextField(
               controller: _searchController,
               onChanged: _searchBooks,
               decoration: InputDecoration(
-                hintText:
-                    'Cari buku, judul, penulis, atau kategori...',
-                hintStyle: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: blue,
-                ),
+                hintText: 'Cari buku, judul, penulis, atau kategori...',
+                hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                prefixIcon: const Icon(Icons.search, color: blue),
                 filled: true,
                 fillColor: const Color(0xFFEEF4FD),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -209,9 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // =================================================
           // BANNER BOOKCYCLE
-          // =================================================
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Container(
@@ -220,10 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF087F3E),
-                    Color(0xFF079B70),
-                  ],
+                  colors: [Color(0xFF087F3E), Color(0xFF079B70)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -231,14 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Stack(
                 children: [
-                  // TULISAN BANNER
                   const Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      14,
-                      12,
-                      130,
-                      12,
-                    ),
+                    padding: EdgeInsets.fromLTRB(14, 12, 130, 12),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,8 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Temukan buku favoritmu '
-                          'dengan harga terbaik.',
+                          'Temukan buku favoritmu dengan harga terbaik.',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 10,
@@ -265,8 +221,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-
-                  // GAMBAR BUKU DI SEBELAH KANAN
                   Positioned(
                     right: 8,
                     top: 8,
@@ -274,15 +228,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 125,
                     child: Center(
                       child: Image.asset(
-                        'assets/images/book_bunner.png',
+                        'assets/images/book_bunner.jpeg',
                         width: 120,
                         height: 120,
                         fit: BoxFit.contain,
-                        errorBuilder: (
-                          context,
-                          error,
-                          stackTrace,
-                        ) {
+                        errorBuilder: (context, error, stackTrace) {
                           return const Icon(
                             Icons.menu_book_rounded,
                             color: Colors.white,
@@ -299,9 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 22),
 
-          // =================================================
           // MENU BELI, JUAL, TUKAR
-          // =================================================
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -335,9 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 50),
 
-          // =================================================
           // KATEGORI BUKU
-          // =================================================
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -349,8 +295,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-
-          // Jarak judul ke kategori diperkecil.
           const SizedBox(height: 30),
 
           Padding(
@@ -360,18 +304,14 @@ class _HomeScreenState extends State<HomeScreen> {
               physics: const NeverScrollableScrollPhysics(),
               padding: EdgeInsets.zero,
               itemCount: categories.length,
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 8,
-
-                // Area setiap kategori dibuat lebih pendek.
                 childAspectRatio: 1.15,
               ),
               itemBuilder: (context, index) {
                 final category = categories[index];
-
                 return InkWell(
                   onTap: () => _openCategory(
                     category['id'] as int,
@@ -413,17 +353,65 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 10),
 
-          // DAFTAR BUKU DI HOME DIHAPUS.
-          // Buku tetap dapat dilihat melalui menu kategori,
-          // Beli, dan Tukar.
+          // REKOMENDASI BUKU
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Rekomendasi Buku',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: blue,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          Consumer<BookController>(
+            builder: (context, controller, child) {
+              final books = controller.books;
+              if (controller.isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(color: green),
+                  ),
+                );
+              }
+              if (controller.errorMessage != null && books.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    'Gagal memuat buku: ${controller.errorMessage}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+              return SizedBox(
+                height: 245,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: books.length,
+                  itemBuilder: (context, index) {
+                    return SizedBox(
+                      width: 155,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: BookCard(book: books[index]),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  // =========================================================
-  // MENU ITEM: BELI, JUAL, TUKAR
-  // =========================================================
+  // HELPER WIDGET (Hanya 1x)
   Widget _menuItem({
     required IconData icon,
     required String label,
@@ -440,15 +428,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               width: 52,
               height: 52,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 25,
-              ),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(icon, color: Colors.white, size: 25),
             ),
             const SizedBox(height: 8),
             Text(
@@ -466,17 +447,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// =========================================================
-// HALAMAN DAFTAR BUKU UNTUK BELI DAN TUKAR
-// =========================================================
-
+// CLASS BOOK LIST SCREEN (Hanya 1x)
 class BookListScreen extends StatelessWidget {
   final bool forSale;
-
-  const BookListScreen({
-    super.key,
-    required this.forSale,
-  });
+  const BookListScreen({super.key, required this.forSale});
 
   static const Color green = Color(0xFF087F3E);
   static const Color blue = Color(0xFF092B8F);
@@ -486,9 +460,7 @@ class BookListScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          forSale ? 'Beli Buku' : 'Tukar Buku',
-        ),
+        title: Text(forSale ? 'Beli Buku' : 'Tukar Buku'),
         backgroundColor: Colors.white,
         foregroundColor: blue,
         elevation: 0,
@@ -496,29 +468,16 @@ class BookListScreen extends StatelessWidget {
       body: Consumer<BookController>(
         builder: (context, controller, child) {
           if (controller.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: green,
-              ),
-            );
+            return const Center(child: CircularProgressIndicator(color: green));
           }
 
           final books = controller.books.where((book) {
-            final jenis =
-                book.jenisTransaksi.trim().toLowerCase();
-            final status =
-                book.statusBuku.trim().toLowerCase();
-
+            final jenis = book.jenisTransaksi.trim().toLowerCase();
+            final status = book.statusBuku.trim().toLowerCase();
             final tersedia = status == 'tersedia';
-
-            final bisaDibeli =
-                jenis == 'jual' || jenis == 'jual_tukar';
-
-            final bisaDitukar =
-                jenis == 'tukar' || jenis == 'jual_tukar';
-
-            return tersedia &&
-                (forSale ? bisaDibeli : bisaDitukar);
+            final bisaDibeli = jenis == 'jual' || jenis == 'jual_tukar';
+            final bisaDitukar = jenis == 'tukar' || jenis == 'jual_tukar';
+            return tersedia && (forSale ? bisaDibeli : bisaDitukar);
           }).toList();
 
           if (books.isEmpty) {
@@ -551,9 +510,7 @@ class BookListScreen extends StatelessWidget {
                     const Text(
                       'Buku yang tersedia akan muncul di sini.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -564,17 +521,14 @@ class BookListScreen extends StatelessWidget {
           return GridView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: books.length,
-            gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 0.62,
             ),
             itemBuilder: (context, index) {
-              return BookCard(
-                book: books[index],
-              );
+              return BookCard(book: books[index]);
             },
           );
         },
