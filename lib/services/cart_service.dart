@@ -1,3 +1,4 @@
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/cart_model.dart';
@@ -7,15 +8,15 @@ import 'supabase_service.dart';
 class CartService {
   final SupabaseClient _client = SupabaseService.client;
 
-  // ==================== GET USER CART ====================
+  // ==================== GET CART ====================
 
-  Future<List<CartModel>> getUserCart(int userId) async {
+  Future<List<CartModel>> getCart(int userId) async {
     try {
       final response = await _client
           .from('keranjang')
           .select()
           .eq('user_id', userId)
-          .order('keranjang_id', ascending: false);
+          .order('tanggal_dibuat', ascending: false);
 
       return response
           .map<CartModel>((json) => CartModel.fromJson(json))
@@ -25,21 +26,38 @@ class CartService {
     }
   }
 
-  // ==================== GET CART DETAIL ====================
+  // ==================== GET CART DETAILS ====================
 
-  Future<List<CartDetailModel>> getCartDetails(int keranjangId) async {
+  Future<List<CartDetailModel>> getCartDetails(int userId) async {
     try {
       final response = await _client
-          .from('detail_keranjang')
-          .select()
-          .eq('keranjang_id', keranjangId)
-          .order('detail_id', ascending: false);
+          .from('keranjang')
+          .select('''
+            keranjang_id,
+            buku_id,
+            jumlah,
+            buku (
+              harga
+            )
+          ''')
+          .eq('user_id', userId);
 
-      return response
-          .map<CartDetailModel>(
-            (json) => CartDetailModel.fromJson(json),
-          )
-          .toList();
+      return response.map<CartDetailModel>((json) {
+        final book = json['buku'];
+
+        final harga = book is Map
+            ? (book['harga'] as num?)?.toInt() ?? 0
+            : 0;
+
+        final jumlah = (json['jumlah'] as num).toInt();
+
+        return CartDetailModel(
+          keranjangId: (json['keranjang_id'] as num).toInt(),
+          bukuId: (json['buku_id'] as num).toInt(),
+          jumlah: jumlah,
+          subtotal: harga * jumlah,
+        );
+      }).toList();
     } catch (e) {
       throw Exception('Gagal mengambil detail keranjang: $e');
     }
@@ -47,71 +65,70 @@ class CartService {
 
   // ==================== ADD TO CART ====================
 
-  Future<CartModel> addToCart({
+  Future<void> addToCart({
     required int userId,
     required int bukuId,
-    int jumlah = 1,
+    required int harga,
   }) async {
     try {
-      final existing = await _client
+      final existingCart = await _client
           .from('keranjang')
-          .select()
+          .select('keranjang_id, jumlah')
           .eq('user_id', userId)
           .eq('buku_id', bukuId)
           .maybeSingle();
 
-      if (existing != null) {
-        final jumlahLama = existing['jumlah'] as int;
+      if (existingCart == null) {
+        await _client.from('keranjang').insert({
+          'user_id': userId,
+          'buku_id': bukuId,
+          'jumlah': 1,
+        });
+      } else {
+        final cartId =
+            (existingCart['keranjang_id'] as num).toInt();
 
-        final response = await _client
+        final jumlahLama =
+            (existingCart['jumlah'] as num).toInt();
+
+        await _client
             .from('keranjang')
-            .update({
-              'jumlah': jumlahLama + jumlah,
-            })
-            .eq('keranjang_id', existing['keranjang_id'])
-            .select()
-            .single();
-
-        return CartModel.fromJson(response);
+            .update({'jumlah': jumlahLama + 1})
+            .eq('keranjang_id', cartId)
+            .eq('user_id', userId);
       }
-
-      final response = await _client
-          .from('keranjang')
-          .insert({
-            'user_id': userId,
-            'buku_id': bukuId,
-            'jumlah': jumlah,
-          })
-          .select()
-          .single();
-
-      return CartModel.fromJson(response);
     } catch (e) {
       throw Exception('Gagal menambahkan buku ke keranjang: $e');
     }
   }
 
-  // ==================== UPDATE CART QUANTITY ====================
+  // ==================== UPDATE QUANTITY ====================
 
-  Future<CartModel> updateCartQuantity({
-    required int keranjangId,
+  Future<void> updateQuantity({
+    required int userId,
+    required int bukuId,
     required int jumlah,
+    required int harga,
   }) async {
-    if (jumlah < 1) {
-      throw Exception('Jumlah buku minimal 1');
-    }
-
     try {
+      if (jumlah <= 0) {
+        await removeFromCart(
+          userId: userId,
+          bukuId: bukuId,
+        );
+        return;
+      }
+
       final response = await _client
           .from('keranjang')
-          .update({
-            'jumlah': jumlah,
-          })
-          .eq('keranjang_id', keranjangId)
-          .select()
-          .single();
+          .update({'jumlah': jumlah})
+          .eq('user_id', userId)
+          .eq('buku_id', bukuId)
+          .select('keranjang_id');
 
-      return CartModel.fromJson(response);
+      if (response.isEmpty) {
+        throw Exception('Buku tidak ditemukan di keranjang');
+      }
     } catch (e) {
       throw Exception('Gagal mengubah jumlah buku: $e');
     }
@@ -119,12 +136,16 @@ class CartService {
 
   // ==================== REMOVE FROM CART ====================
 
-  Future<void> removeFromCart(int keranjangId) async {
+  Future<void> removeFromCart({
+    required int userId,
+    required int bukuId,
+  }) async {
     try {
       await _client
           .from('keranjang')
           .delete()
-          .eq('keranjang_id', keranjangId);
+          .eq('user_id', userId)
+          .eq('buku_id', bukuId);
     } catch (e) {
       throw Exception('Gagal menghapus buku dari keranjang: $e');
     }
@@ -140,73 +161,6 @@ class CartService {
           .eq('user_id', userId);
     } catch (e) {
       throw Exception('Gagal mengosongkan keranjang: $e');
-    }
-  }
-
-  // ==================== ADD CART DETAIL ====================
-
-  Future<CartDetailModel> addCartDetail({
-    required int keranjangId,
-    required int bukuId,
-    required int jumlah,
-    required int subtotal,
-  }) async {
-    try {
-      final response = await _client
-          .from('detail_keranjang')
-          .insert({
-            'keranjang_id': keranjangId,
-            'buku_id': bukuId,
-            'jumlah': jumlah,
-            'subtotal': subtotal,
-          })
-          .select()
-          .single();
-
-      return CartDetailModel.fromJson(response);
-    } catch (e) {
-      throw Exception('Gagal menambahkan detail keranjang: $e');
-    }
-  }
-
-  // ==================== UPDATE CART DETAIL ====================
-
-  Future<CartDetailModel> updateCartDetail({
-    required int detailId,
-    required int jumlah,
-    required int subtotal,
-  }) async {
-    if (jumlah < 1) {
-      throw Exception('Jumlah buku minimal 1');
-    }
-
-    try {
-      final response = await _client
-          .from('detail_keranjang')
-          .update({
-            'jumlah': jumlah,
-            'subtotal': subtotal,
-          })
-          .eq('detail_id', detailId)
-          .select()
-          .single();
-
-      return CartDetailModel.fromJson(response);
-    } catch (e) {
-      throw Exception('Gagal mengubah detail keranjang: $e');
-    }
-  }
-
-  // ==================== DELETE CART DETAIL ====================
-
-  Future<void> deleteCartDetail(int detailId) async {
-    try {
-      await _client
-          .from('detail_keranjang')
-          .delete()
-          .eq('detail_id', detailId);
-    } catch (e) {
-      throw Exception('Gagal menghapus detail keranjang: $e');
     }
   }
 }

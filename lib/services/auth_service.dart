@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/user_model.dart';
 import 'supabase_service.dart';
 
@@ -14,32 +15,25 @@ class AuthService {
     String? alamat,
   }) async {
     try {
-      // 1. Register ke Supabase Auth
+      // 1. Daftar ke Supabase Auth.
+      // Password otomatis di-hash dan diamankan oleh Supabase di tabel auth.users.
+      // Data di dalam map 'data' akan ditangkap oleh Trigger database kita
+      // untuk otomatis di-insert ke tabel public.users (TANPA password).
       final response = await _client.auth.signUp(
         email: email,
         password: password,
         data: {
           'nama_lengkap': namaLengkap,
           'nomor_hp': nomorHp ?? '',
+          'alamat': alamat ?? '', // Ditambahkan agar trigger bisa menangkapnya
         },
       );
-
-      // 2. Jika berhasil, simpan data tambahan ke tabel users
-      if (response.user != null) {
-        await _client.from('users').insert({
-          'nama_lengkap': namaLengkap,
-          'email': email,
-          'nomor_hp': nomorHp,
-          'alamat': alamat,
-          'auth_id': response.user!.id,
-        });
-      }
 
       return response;
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
-      throw Exception('Terjadi kesalahan: $e');
+      throw Exception('Terjadi kesalahan saat mendaftar: $e');
     }
   }
 
@@ -56,7 +50,7 @@ class AuthService {
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
-      throw Exception('Terjadi kesalahan: $e');
+      throw Exception('Terjadi kesalahan saat login: $e');
     }
   }
 
@@ -78,15 +72,18 @@ class AuthService {
       final user = currentUser;
       if (user == null) return null;
 
+      // PERBAIKAN: Query menggunakan 'auth_id' (UUID) lebih aman dan akurat
+      // daripada menggunakan 'email', karena email bisa saja diubah user nanti.
       final response = await _client
           .from('users')
           .select()
-          .eq('email', user.email!)
+          .eq('auth_id', user.id)
           .maybeSingle();
 
       if (response == null) return null;
       return UserModel.fromJson(response);
     } catch (e) {
+      print('Error mendapatkan profil user: $e');
       return null;
     }
   }
@@ -108,10 +105,10 @@ class AuthService {
       if (alamat != null) updates['alamat'] = alamat;
       if (fotoProfil != null) updates['foto_profil'] = fotoProfil;
 
-      await _client
-          .from('users')
-          .update(updates)
-          .eq('email', user.email!);
+      if (updates.isEmpty) return; // Jika tidak ada yang diubah, batal request
+
+      // PERBAIKAN: Update menggunakan 'auth_id' agar sesuai dengan relasi database
+      await _client.from('users').update(updates).eq('auth_id', user.id);
     } catch (e) {
       throw Exception('Gagal update profile: $e');
     }

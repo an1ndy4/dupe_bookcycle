@@ -114,12 +114,45 @@ class BookService {
     }
   }
 
+
   // ==================== INSERT BOOK ====================
   Future<BookModel> insertBook(BookModel book) async {
     try {
+      final authUser = _client.auth.currentUser;
+
+      if (authUser == null) {
+        throw Exception('Pengguna belum login.');
+      }
+
+      // Cari profil pengguna berdasarkan UUID Supabase Auth.
+      final profile = await _client
+          .from('users')
+          .select('user_id')
+          .eq('auth_id', authUser.id)
+          .maybeSingle();
+
+      if (profile == null) {
+        throw Exception(
+          'Profil pengguna tidak ditemukan. '
+          'Periksa hubungan akun dengan tabel users.',
+        );
+      }
+
+      // Siapkan data untuk tabel public.buku.
+      final payload = book.toJson();
+
+      // Biarkan database menghasilkan ID otomatis.
+      if (payload['buku_id'] == null) {
+        payload.remove('buku_id');
+      }
+
+      // Gunakan ID internal, bukan UUID Supabase Auth.
+      payload['user_id'] = profile['user_id'];
+
+      // Simpan dan ambil kembali data yang berhasil dimasukkan.
       final response = await _client
           .from('buku')
-          .insert(book.toJson())
+          .insert(payload)
           .select()
           .single();
 
@@ -128,6 +161,7 @@ class BookService {
       throw Exception('Gagal menambahkan buku: $e');
     }
   }
+
 
   // ==================== UPDATE BOOK ====================
   Future<BookModel> updateBook(

@@ -1,29 +1,57 @@
 import 'package:flutter/material.dart';
+
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
-class AuthController extends ChangeNotifier {
-  final AuthService _authService = AuthService();
+class AuthController
+    extends
+        ChangeNotifier {
+  final AuthService
+  _authService =
+      AuthService();
 
-  UserModel? _currentUser;
-  bool _isLoading = false;
-  String? _errorMessage;
+  UserModel?
+  _currentUser;
+  bool
+  _isLoading =
+      false;
+  String?
+  _errorMessage;
 
   // Getters
-  UserModel? get currentUser => _currentUser;
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
-  bool get isLoggedIn => _currentUser != null;
+  UserModel?
+  get currentUser =>
+      _currentUser;
+  bool
+  get isLoading =>
+      _isLoading;
+  String?
+  get errorMessage =>
+      _errorMessage;
+  bool
+  get isLoggedIn =>
+      _currentUser !=
+      null;
 
   // ==================== REGISTER ====================
-  Future<bool> register({
-    required String email,
-    required String password,
-    required String namaLengkap,
-    String? nomorHp,
-    String? alamat,
+  Future<
+    bool
+  >
+  register({
+    required String
+    email,
+    required String
+    password,
+    required String
+    namaLengkap,
+    String?
+    nomorHp,
+    String?
+    alamat,
   }) async {
-    _setLoading(true);
+    _setLoading(
+      true,
+    );
     _clearError();
 
     try {
@@ -34,21 +62,36 @@ class AuthController extends ChangeNotifier {
         nomorHp: nomorHp,
         alamat: alamat,
       );
-      _setLoading(false);
+      _setLoading(
+        false,
+      );
       return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
+    } catch (
+      e
+    ) {
+      _setError(
+        e.toString(),
+      );
+      _setLoading(
+        false,
+      );
       return false;
     }
   }
 
   // ==================== LOGIN ====================
-  Future<bool> login({
-    required String email,
-    required String password,
+  Future<
+    bool
+  >
+  login({
+    required String
+    email,
+    required String
+    password,
   }) async {
-    _setLoading(true);
+    _setLoading(
+      true,
+    );
     _clearError();
 
     try {
@@ -57,50 +100,79 @@ class AuthController extends ChangeNotifier {
         password: password,
       );
 
-      if (response.user != null) {
+      if (response.user !=
+          null) {
         // Ambil data user dari tabel users
         _currentUser = await _authService.getUserProfile();
         _setLoading(false);
         notifyListeners();
         return true;
       }
-      _setLoading(false);
+      _setLoading(
+        false,
+      );
       return false;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
+    } catch (
+      e
+    ) {
+      _setError(
+        e.toString(),
+      );
+      _setLoading(
+        false,
+      );
       return false;
     }
   }
 
   // ==================== LOGOUT ====================
-  Future<void> logout() async {
+  Future<
+    void
+  >
+  logout() async {
     try {
       await _authService.logout();
       _currentUser = null;
       notifyListeners();
-    } catch (e) {
-      _setError(e.toString());
+    } catch (
+      e
+    ) {
+      _setError(
+        e.toString(),
+      );
     }
   }
 
   // ==================== LOAD CURRENT USER ====================
-  Future<void> loadCurrentUser() async {
+  Future<
+    void
+  >
+  loadCurrentUser() async {
     try {
       _currentUser = await _authService.getUserProfile();
       notifyListeners();
-    } catch (e) {
+    } catch (
+      e
+    ) {
       // User belum login
     }
   }
 
   // ==================== UPDATE PROFILE ====================
-  Future<bool> updateProfile({
-    String? namaLengkap,
-    String? nomorHp,
-    String? alamat,
+  Future<
+    bool
+  >
+  updateProfile({
+    String?
+    namaLengkap,
+    String?
+    nomorHp,
+    String?
+    alamat,
   }) async {
-    _setLoading(true);
+    _setLoading(
+      true,
+    );
     _clearError();
 
     try {
@@ -110,43 +182,81 @@ class AuthController extends ChangeNotifier {
         alamat: alamat,
       );
       await loadCurrentUser();
-      _setLoading(false);
+      _setLoading(
+        false,
+      );
       return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
+    } catch (
+      e
+    ) {
+      _setError(
+        e.toString(),
+      );
+      _setLoading(
+        false,
+      );
       return false;
     }
   }
 
   // ==================== FORGOT PASSWORD ====================
-  Future<bool> forgotPassword(String email) async {
-    _setLoading(true);
+  Future<
+    bool
+  >
+  forgotPassword(
+    String
+    email,
+  ) async {
+    _setLoading(
+      true,
+    );
     _clearError();
 
     try {
-      await _authService.forgotPassword(email);
-      _setLoading(false);
+      await _authService.forgotPassword(
+        email,
+      );
+      _setLoading(
+        false,
+      );
       return true;
-    } catch (e) {
-      _setError(e.toString());
-      _setLoading(false);
+    } catch (
+      e
+    ) {
+      _setError(
+        e.toString(),
+      );
+      _setLoading(
+        false,
+      );
       return false;
     }
   }
 
   // ==================== HELPERS ====================
-  void _setLoading(bool value) {
-    _isLoading = value;
+  void
+  _setLoading(
+    bool
+    value,
+  ) {
+    _isLoading =
+        value;
     notifyListeners();
   }
 
-  void _setError(String message) {
-    _errorMessage = message;
+  void
+  _setError(
+    String
+    message,
+  ) {
+    _errorMessage =
+        message;
     notifyListeners();
   }
 
-  void _clearError() {
-    _errorMessage = null;
+  void
+  _clearError() {
+    _errorMessage =
+        null;
   }
 }
