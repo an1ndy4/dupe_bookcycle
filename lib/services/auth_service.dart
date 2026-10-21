@@ -28,6 +28,20 @@ class AuthService {
         },
       );
 
+<<<<<<< HEAD
+=======
+      // 2. Jika berhasil, simpan data tambahan ke tabel users
+      if (response.user != null) {
+        await _client.from('users').insert({
+          'nama_lengkap': namaLengkap,
+          'email': email,
+          'nomor_hp': nomorHp,
+          'alamat': alamat,
+          'auth_id': response.user!.id,
+        });
+      }
+
+>>>>>>> Muti
       return response;
     } on AuthException catch (e) {
       throw Exception(e.message);

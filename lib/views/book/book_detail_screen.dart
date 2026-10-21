@@ -29,71 +29,182 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Future<void> _fetchBookData() async {
     try {
-      // Ambil data buku
+      // 1. Ambil buku dari tabel yang benar.
       final bookResponse = await _supabase
-          .from('books')
-          .select('*, profiles(full_name, phone_number)')
-          .eq('id', widget.bookId)
-          .single();
+          .from('buku')
+          .select()
+          .eq('buku_id', widget.bookId)
+          .maybeSingle();
+
+      if (bookResponse == null) {
+        if (!mounted) return;
+
+        setState(() {
+          _book = null;
+          _seller = null;
+          _isLoading = false;
+        });
+
+        return;
+      }
+
+      // 2. Ambil ID pengguna dan kategori dari data buku.
+      final int? userId = (bookResponse['user_id'] as num?)?.toInt();
+
+      final int? kategoriId = (bookResponse['kategori_id'] as num?)?.toInt();
+
+      // 3. Ambil informasi penjual dari tabel users.
+      Map<String, dynamic>? sellerResponse;
+
+      if (userId != null) {
+        sellerResponse = await _supabase
+            .from('users')
+            .select('nama_lengkap, nomor_hp')
+            .eq('user_id', userId)
+            .maybeSingle();
+      }
+
+      // 4. Ambil nama kategori dari tabel kategori.
+      Map<String, dynamic>? categoryResponse;
+
+      if (kategoriId != null) {
+        categoryResponse = await _supabase
+            .from('kategori')
+            .select('nama_kategori')
+            .eq('kategori_id', kategoriId)
+            .maybeSingle();
+      }
+
+      // 5. Sesuaikan nama kolom database dengan nama
+      // yang digunakan oleh tampilan detail buku saat ini.
+      final String jenisTransaksi =
+          bookResponse['jenis_transaksi']?.toString() ?? 'Jual';
+
+      final Map<String, dynamic> mappedBook = {
+        'id': bookResponse['buku_id'],
+        'user_id': bookResponse['user_id'],
+        'title': bookResponse['judul_buku'] ?? 'Tanpa judul',
+        'author': bookResponse['penulis'] ?? '-',
+        'price': bookResponse['harga'] ?? 0,
+        'description': bookResponse['deskripsi'],
+        'image_url': bookResponse['foto_buku'],
+        'category': categoryResponse?['nama_kategori'] ?? '-',
+        'condition': bookResponse['kondisi_buku'] ?? '-',
+        'is_for_sale':
+            jenisTransaksi == 'Jual' || jenisTransaksi == 'Jual_Tukar',
+        'is_for_exchange':
+            jenisTransaksi == 'Tukar' || jenisTransaksi == 'Jual_Tukar',
+
+        // Tabel buku yang kita periksa belum memiliki
+        // kolom tanggal pembuatan.
+        'created_at': null,
+      };
+
+      final Map<String, dynamic>? mappedSeller = sellerResponse == null
+          ? null
+          : {
+              'full_name': sellerResponse['nama_lengkap'] ?? 'Penjual',
+              'phone_number': sellerResponse['nomor_hp'] ?? '-',
+            };
+
+      if (!mounted) return;
 
       setState(() {
-        _book = bookResponse;
-        _seller = bookResponse['profiles'];
+        _book = mappedBook;
+        _seller = mappedSeller;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal load data: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _book = null;
+        _seller = null;
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memuat detail buku: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   // 🛒 Tambah ke keranjang
+
   Future<void> _addToCart() async {
+    if (_isAddingToCart) return;
+
+    final authUser = _supabase.auth.currentUser;
+
+    if (authUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan login terlebih dahulu.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isAddingToCart = true);
 
     try {
-      final userId = _supabase.auth.currentUser!.id;
+      // 1. Cari ID internal pengguna dari tabel users.
+      final profile = await _supabase
+          .from('users')
+          .select('user_id')
+          .eq('auth_id', authUser.id)
+          .maybeSingle();
 
-      // Cek apakah buku sudah di keranjang
+      if (profile == null) {
+        throw Exception('Profil pengguna tidak ditemukan di database.');
+      }
+
+      final int userId = (profile['user_id'] as num).toInt();
+
+      // 2. Periksa apakah buku sudah ada di keranjang.
       final existingCart = await _supabase
-          .from('cart')
-          .select()
+          .from('keranjang')
+          .select('keranjang_id')
           .eq('user_id', userId)
-          .eq('book_id', widget.bookId)
+          .eq('buku_id', widget.bookId)
           .maybeSingle();
 
       if (existingCart != null) {
-        throw Exception('Buku sudah ada di keranjang');
+        throw Exception('Buku sudah ada di keranjang.');
       }
 
-      // Tambah ke cart
-      await _supabase.from('cart').insert({
+      // 3. Simpan buku ke tabel keranjang.
+      await _supabase.from('keranjang').insert({
         'user_id': userId,
-        'book_id': widget.bookId,
-        'quantity': 1,
+        'buku_id': widget.bookId,
+        'jumlah': 1,
       });
 
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Berhasil tambah ke keranjang'),
+          content: Text('Berhasil menambahkan buku ke keranjang.'),
           backgroundColor: Color(0xFF2E7D32),
         ),
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
-      if (mounted) setState(() => _isAddingToCart = false);
+      if (mounted) {
+        setState(() => _isAddingToCart = false);
+      }
     }
   }
 
