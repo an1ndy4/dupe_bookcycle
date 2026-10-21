@@ -79,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 15),
                   Center(
                     child: Image.asset(
-                      'assets/images/logo.png',
+                      'assets/images/logo.jpg.jpeg',
                       width: 80,
                       height: 80,
                       errorBuilder: (_, __, ___) => const Icon(
