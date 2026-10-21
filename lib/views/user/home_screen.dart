@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,64 +23,50 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController =
       TextEditingController();
 
-  int _currentIndex = 0;
+  int _selectedIndex = 0;
 
-  final List<Map<String, dynamic>> _categories = [
+  final List<Map<String, dynamic>> categories = [
     {
-      'name': 'Fiksi',
       'id': 1,
-      'icon': Icons.menu_book_rounded,
-      'bg': Color(0xFFE0F4E9),
-      'fg': Color(0xFF087F3E),
+      'name': 'Fiksi',
+      'icon': Icons.auto_stories_rounded,
+      'color': Color(0xFFE1F4E8),
     },
     {
-      'name': 'Non Fiksi',
       'id': 2,
-      'icon': Icons.card_giftcard_rounded,
-      'bg': Color(0xFFE0F0FC),
-      'fg': Color(0xFF159BD7),
-    },
-    {
-      'name': 'Pelajaran',
-      'id': 3,
+      'name': 'Non Fiksi',
       'icon': Icons.menu_book_rounded,
-      'bg': Color(0xFFE0F4E9),
-      'fg': Color(0xFF087F3E),
+      'color': Color(0xFFFFE8D5),
     },
     {
-      'name': 'Komik',
+      'id': 3,
+      'name': 'Pelajaran',
+      'icon': Icons.school_rounded,
+      'color': Color(0xFFE1EAFF),
+    },
+    {
       'id': 4,
-      'icon': Icons.bookmark_rounded,
-      'bg': Color(0xFFFCE4E7),
-      'fg': Color(0xFFE84D68),
+      'name': 'Komik',
+      'icon': Icons.auto_awesome_rounded,
+      'color': Color(0xFFFFE4EC),
     },
     {
-      'name': 'Self Help',
       'id': 5,
-      'icon': Icons.self_improvement_rounded,
-      'bg': Color(0xFFFFEDCF),
-      'fg': Color(0xFFD99400),
-    },
-    {
-      'name': 'Teknologi',
-      'id': 6,
+      'name': 'Self Help',
       'icon': Icons.psychology_rounded,
-      'bg': Color(0xFFE0F0FC),
-      'fg': Color(0xFF159BD7),
+      'color': Color(0xFFFFF0C9),
     },
     {
-      'name': 'Bisnis',
+      'id': 6,
+      'name': 'Teknologi',
+      'icon': Icons.computer_rounded,
+      'color': Color(0xFFDDF5F8),
+    },
+    {
       'id': 7,
+      'name': 'Bisnis',
       'icon': Icons.business_center_rounded,
-      'bg': Color(0xFFFFE9CA),
-      'fg': Color(0xFFE47712),
-    },
-    {
-      'name': 'Lainnya',
-      'id': 8,
-      'icon': Icons.grid_view_rounded,
-      'bg': Color(0xFFE0F0FC),
-      'fg': Color(0xFF159BD7),
+      'color': Color(0xFFEAE2FF),
     },
   ];
 
@@ -91,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+
       context.read<BookController>().fetchAllBooks();
       context.read<CategoryController>().fetchAllCategories();
     });
@@ -106,36 +92,31 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<BookController>().searchBooks(query);
   }
 
-  // Navigasi ke halaman buku berdasarkan kategori.
-  void _openCategory(int kategoriId, String namaKategori) {
+  void _openCategory(int id, String name) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CategoryScreen(
-          kategoriId: kategoriId,
-          namaKategori: namaKategori,
+        builder: (_) => CategoryScreen(
+          kategoriId: id,
+          namaKategori: name,
         ),
       ),
     );
   }
 
-  void _openSellPage() {
+  void _openBookList({required bool forSale}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SellBookScreen(),
+        builder: (_) => BookListScreen(forSale: forSale),
       ),
     );
   }
 
-  void _onNavigationTap(int index) {
-    if (index == 1) {
-      _openSellPage();
-      return;
-    }
-
+  // Navigasi bawah tetap berada di dalam Scaffold yang sama.
+  void _onBottomNavTap(int index) {
     setState(() {
-      _currentIndex = index;
+      _selectedIndex = index;
     });
   }
 
@@ -143,23 +124,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
       body: SafeArea(
-        child: _currentIndex == 2
-            ? NotificationScreen()
-            : _currentIndex == 3
-                ? ProfileScreen()
-                : _buildHomeContent(),
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _buildHomeContent(),
+            const SellBookScreen(),
+            const NotificationScreen(),
+            const ProfileScreen(),
+          ],
+        ),
       ),
+
+      // NAVIGASI BAWAH
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onNavigationTap,
+        currentIndex: _selectedIndex,
+        onTap: _onBottomNavTap,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         selectedItemColor: green,
-        unselectedItemColor: blue,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        elevation: 8,
+        unselectedItemColor: Colors.grey,
+        selectedFontSize: 10,
+        unselectedFontSize: 10,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
@@ -182,339 +169,262 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // =========================================================
+  // KONTEN HOME
+  // =========================================================
   Widget _buildHomeContent() {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(23, 24, 23, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // PENCARIAN
-                TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    _searchBooks(value);
-                    setState(() {});
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Cari buku, judul, penulis, atau kategori...',
-                    hintStyle: const TextStyle(
-                      color: Color(0xFF8799B5),
-                      fontSize: 16,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // =================================================
+          // SEARCH BAR
+          // =================================================
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _searchBooks,
+              decoration: InputDecoration(
+                hintText:
+                    'Cari buku, judul, penulis, atau kategori...',
+                hintStyle: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: blue,
+                ),
+                filled: true,
+                fillColor: const Color(0xFFEEF4FD),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+
+          // =================================================
+          // BANNER BOOKCYCLE
+          // =================================================
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Container(
+              height: 150,
+              width: double.infinity,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF087F3E),
+                    Color(0xFF079B70),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Stack(
+                children: [
+                  // TULISAN BANNER
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      14,
+                      12,
+                      130,
+                      12,
                     ),
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: blue,
-                      size: 31,
-                    ),
-                    suffixIcon: _searchController.text.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              _searchBooks('');
-                              setState(() {});
-                            },
-                            icon: const Icon(Icons.close),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Buku baru,\ncerita baru!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 19,
+                            height: 1.15,
+                            fontWeight: FontWeight.bold,
                           ),
-                    filled: true,
-                    fillColor: const Color(0xFFEEF4FD),
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 25,
-                      horizontal: 20,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 39),
-
-                // BANNER HIJAU
-                Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(minHeight: 245),
-                  padding: const EdgeInsets.fromLTRB(30, 32, 20, 28),
-                  decoration: BoxDecoration(
-                    color: green,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 7,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Buku baru,\ncerita baru!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 30,
-                                height: 1.2,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Temukan buku favoritmu\ndengan harga terbaik.',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                height: 1.6,
-                              ),
-                            ),
-                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        flex: 3,
-                        child: Icon(
-                          Icons.menu_book_rounded,
-                          size: 83,
-                          color: Color(0xFFB9F0D0),
+                        SizedBox(height: 8),
+                        Text(
+                          'Temukan buku favoritmu '
+                          'dengan harga terbaik.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            height: 1.4,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 55),
-
-                // MENU BELI, JUAL, TUKAR
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildAction(
-                        icon: Icons.shopping_bag_outlined,
-                        label: 'Beli',
-                        color: green,
-                        onTap: () {
-                          _searchController.clear();
-                          _searchBooks('');
-                          setState(() {});
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildAction(
-                        icon: Icons.sell_outlined,
-                        label: 'Jual',
-                        color: const Color(0xFFFFC629),
-                        onTap: _openSellPage,
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildAction(
-                        icon: Icons.swap_horiz_rounded,
-                        label: 'Tukar',
-                        color: const Color(0xFF109FE0),
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Fitur tukar buku akan segera tersedia.',
-                              ),
-                            ),
+                  // GAMBAR BUKU DI SEBELAH KANAN
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    bottom: 8,
+                    width: 125,
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/book_bunner.png',
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.contain,
+                        errorBuilder: (
+                          context,
+                          error,
+                          stackTrace,
+                        ) {
+                          return const Icon(
+                            Icons.menu_book_rounded,
+                            color: Colors.white,
+                            size: 65,
                           );
                         },
                       ),
                     ),
-                  ],
-                ),
-
-                const SizedBox(height: 57),
-
-                // JUDUL KATEGORI
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Kategori',
-                      style: TextStyle(
-                        color: blue,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Pilih salah satu kategori untuk melihat buku.',
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Lihat Semua ›',
-                        style: TextStyle(
-                          color: green,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 15),
-
-                // KATEGORI 4 KOLOM X 2 BARIS
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _categories.length,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 27,
-                    childAspectRatio: 0.78,
                   ),
-                  itemBuilder: (context, index) {
-                    final category = _categories[index];
+                ],
+              ),
+            ),
+          ),
 
-                    return InkWell(
-                      onTap: () {
-                        _openCategory(
-                          category['id'] as int,
-                          category['name'] as String,
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(15),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 78,
-                            height: 78,
-                            decoration: BoxDecoration(
-                              color: category['bg'] as Color,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              category['icon'] as IconData,
-                              color: category['fg'] as Color,
-                              size: 35,
-                            ),
-                          ),
-                          const SizedBox(height: 11),
-                          Text(
-                            category['name'] as String,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+          const SizedBox(height: 22),
+
+          // =================================================
+          // MENU BELI, JUAL, TUKAR
+          // =================================================
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _menuItem(
+                  icon: Icons.shopping_bag_outlined,
+                  label: 'Beli',
+                  color: const Color(0xFF087F3E),
+                  onTap: () => _openBookList(forSale: true),
+                ),
+                _menuItem(
+                  icon: Icons.sell_outlined,
+                  label: 'Jual',
+                  color: const Color(0xFFFFC329),
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 1;
+                    });
                   },
                 ),
-
-                const SizedBox(height: 40),
-
-                // REKOMENDASI BUKU
-                const Text(
-                  'Rekomendasi Buku',
-                  style: TextStyle(
-                    color: blue,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                _menuItem(
+                  icon: Icons.swap_horiz_rounded,
+                  label: 'Tukar',
+                  color: const Color(0xFF13A4E0),
+                  onTap: () => _openBookList(forSale: false),
                 ),
-
-                const SizedBox(height: 20),
               ],
             ),
           ),
-        ),
 
-        // DATA BUKU
-        Consumer<BookController>(
-          builder: (context, controller, child) {
-            if (controller.isLoading) {
-              return const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(30),
-                  child: Center(
-                    child: CircularProgressIndicator(color: green),
-                  ),
-                ),
-              );
-            }
+          const SizedBox(height: 50),
 
-            if (controller.errorMessage != null) {
-              return SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Center(
-                    child: Text(
-                      'Gagal memuat buku:\n${controller.errorMessage}',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            final books = controller.books;
-
-            if (books.isEmpty) {
-              return const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(30),
-                  child: Center(
-                    child: Text(
-                      'Belum ada buku yang tersedia.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            return SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 23),
-              sliver: SliverGrid(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    return BookCard(book: books[index]);
-                  },
-                  childCount: books.length,
-                ),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.62,
-                ),
+          // =================================================
+          // KATEGORI BUKU
+          // =================================================
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Kategori Buku',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: blue,
               ),
-            );
-          },
-        ),
+            ),
+          ),
 
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 30),
-        ),
-      ],
+          // Jarak judul ke kategori diperkecil.
+          const SizedBox(height: 30),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              itemCount: categories.length,
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 8,
+
+                // Area setiap kategori dibuat lebih pendek.
+                childAspectRatio: 1.15,
+              ),
+              itemBuilder: (context, index) {
+                final category = categories[index];
+
+                return InkWell(
+                  onTap: () => _openCategory(
+                    category['id'] as int,
+                    category['name'] as String,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        height: 55,
+                        width: 55,
+                        decoration: BoxDecoration(
+                          color: category['color'] as Color,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          category['icon'] as IconData,
+                          color: green,
+                          size: 27,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        category['name'] as String,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: blue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // DAFTAR BUKU DI HOME DIHAPUS.
+          // Buku tetap dapat dilihat melalui menu kategori,
+          // Beli, dan Tukar.
+        ],
+      ),
     );
   }
 
-  Widget _buildAction({
+  // =========================================================
+  // MENU ITEM: BELI, JUAL, TUKAR
+  // =========================================================
+  Widget _menuItem({
     required IconData icon,
     required String label,
     required Color color,
@@ -522,32 +432,152 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(60),
-      child: Column(
-        children: [
-          Container(
-            width: 92,
-            height: 92,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        width: 80,
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 25,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 39,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: blue,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const SizedBox(height: 17),
-          Text(
-            label,
-            style: const TextStyle(
-              color: blue,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================================
+// HALAMAN DAFTAR BUKU UNTUK BELI DAN TUKAR
+// =========================================================
+
+class BookListScreen extends StatelessWidget {
+  final bool forSale;
+
+  const BookListScreen({
+    super.key,
+    required this.forSale,
+  });
+
+  static const Color green = Color(0xFF087F3E);
+  static const Color blue = Color(0xFF092B8F);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          forSale ? 'Beli Buku' : 'Tukar Buku',
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: blue,
+        elevation: 0,
+      ),
+      body: Consumer<BookController>(
+        builder: (context, controller, child) {
+          if (controller.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: green,
+              ),
+            );
+          }
+
+          final books = controller.books.where((book) {
+            final jenis =
+                book.jenisTransaksi.trim().toLowerCase();
+            final status =
+                book.statusBuku.trim().toLowerCase();
+
+            final tersedia = status == 'tersedia';
+
+            final bisaDibeli =
+                jenis == 'jual' || jenis == 'jual_tukar';
+
+            final bisaDitukar =
+                jenis == 'tukar' || jenis == 'jual_tukar';
+
+            return tersedia &&
+                (forSale ? bisaDibeli : bisaDitukar);
+          }).toList();
+
+          if (books.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      forSale
+                          ? Icons.shopping_bag_outlined
+                          : Icons.swap_horiz_rounded,
+                      size: 70,
+                      color: green,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      forSale
+                          ? 'Belum ada buku untuk dibeli'
+                          : 'Belum ada buku untuk ditukar',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: blue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Buku yang tersedia akan muncul di sini.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return GridView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: books.length,
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.62,
             ),
-          ),
-        ],
+            itemBuilder: (context, index) {
+              return BookCard(
+                book: books[index],
+              );
+            },
+          );
+        },
       ),
     );
   }
