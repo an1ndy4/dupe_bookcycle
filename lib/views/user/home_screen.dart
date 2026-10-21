@@ -20,15 +20,32 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color green = Color(0xFF087F3E);
   static const Color blue = Color(0xFF092B8F);
 
+<<<<<<< HEAD
   final TextEditingController _searchController = TextEditingController();
   int _selectedIndex = 0;
 
+=======
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  int _selectedIndex = 0;
+
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
   final List<Map<String, dynamic>> categories = [
     {
       'id': 1,
       'name': 'Fiksi',
       'icon': Icons.auto_stories_rounded,
       'color': Color(0xFFE1F4E8),
+<<<<<<< HEAD
+=======
+    },
+    {
+      'id': 2,
+      'name': 'Non Fiksi',
+      'icon': Icons.menu_book_rounded,
+      'color': Color(0xFFFFE8D5),
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
     },
     {
       'id': 3,
@@ -65,8 +82,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+=======
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
       context.read<BookController>().fetchAllBooks();
       context.read<CategoryController>().fetchAllCategories();
     });
@@ -94,10 +118,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openBookList({required bool forSale}) {
     Navigator.push(
       context,
+<<<<<<< HEAD
       MaterialPageRoute(builder: (_) => BookListScreen(forSale: forSale)),
     );
   }
 
+=======
+      MaterialPageRoute(
+        builder: (_) => BookListScreen(forSale: forSale),
+      ),
+    );
+  }
+
+  // Navigasi bawah tetap berada di dalam Scaffold yang sama.
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
   void _onBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -150,6 +184,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+<<<<<<< HEAD
+=======
+  // =========================================================
+  // KONTEN HOME
+  // =========================================================
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
   Widget _buildHomeContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 16),
@@ -163,12 +203,29 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: _searchController,
               onChanged: _searchBooks,
               decoration: InputDecoration(
+<<<<<<< HEAD
                 hintText: 'Cari buku, judul, penulis, atau kategori...',
                 hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
                 prefixIcon: const Icon(Icons.search, color: blue),
                 filled: true,
                 fillColor: const Color(0xFFEEF4FD),
                 contentPadding: const EdgeInsets.symmetric(vertical: 14),
+=======
+                hintText:
+                    'Cari buku, judul, penulis, atau kategori...',
+                hintStyle: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: blue,
+                ),
+                filled: true,
+                fillColor: const Color(0xFFEEF4FD),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 14),
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -186,7 +243,14 @@ class _HomeScreenState extends State<HomeScreen> {
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
+<<<<<<< HEAD
                   colors: [Color(0xFF087F3E), Color(0xFF079B70)],
+=======
+                  colors: [
+                    Color(0xFF087F3E),
+                    Color(0xFF079B70),
+                  ],
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -228,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 125,
                     child: Center(
                       child: Image.asset(
-                        'assets/images/book_bunner.jpeg',
+                        'assets/images/book_bunner.png',
                         width: 120,
                         height: 120,
                         fit: BoxFit.contain,
@@ -249,7 +313,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 22),
 
+<<<<<<< HEAD
           // MENU BELI, JUAL, TUKAR
+=======
+          // =================================================
+          // MENU BELI, JUAL, TUKAR
+          // =================================================
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -353,6 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 10),
 
+<<<<<<< HEAD
           // REKOMENDASI BUKU
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -406,6 +477,11 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+=======
+          // DAFTAR BUKU DI HOME DIHAPUS.
+          // Buku tetap dapat dilihat melalui menu kategori,
+          // Beli, dan Tukar.
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
         ],
       ),
     );
@@ -447,7 +523,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+<<<<<<< HEAD
 // CLASS BOOK LIST SCREEN (Hanya 1x)
+=======
+// =========================================================
+// HALAMAN DAFTAR BUKU UNTUK BELI DAN TUKAR
+// =========================================================
+
+>>>>>>> 71facaf6ed9cae7b0da12b88cde65c7ec6fb263e
 class BookListScreen extends StatelessWidget {
   final bool forSale;
   const BookListScreen({super.key, required this.forSale});
