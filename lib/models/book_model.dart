@@ -6,13 +6,12 @@ class BookModel {
   final String? penulis;
   final String? penerbit;
   final String? isbn;
-  final String kondisiBuku; // 'Baru', 'Bekas_Layak', 'Bekas_Cukup'
+  final String kondisiBuku;
   final String? deskripsi;
   final int? harga;
-  final String jenisTransaksi; // 'Jual', 'Tukar', 'Jual_Tukar'
+  final String jenisTransaksi;
   final String? fotoBuku;
-  final String statusBuku; // 'Tersedia', 'Terjual', 'Sudah_Ditukar'
-  final DateTime? createdAt;
+  final String statusBuku;
 
   BookModel({
     this.bukuId,
@@ -28,7 +27,6 @@ class BookModel {
     required this.jenisTransaksi,
     this.fotoBuku,
     this.statusBuku = 'Tersedia',
-    this.createdAt,
   });
 
   factory BookModel.fromJson(Map<String, dynamic> json) {
@@ -46,15 +44,11 @@ class BookModel {
       jenisTransaksi: json['jenis_transaksi'] ?? 'Jual',
       fotoBuku: json['foto_buku'],
       statusBuku: json['status_buku'] ?? 'Tersedia',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'buku_id': bukuId,
       'user_id': userId,
       'kategori_id': kategoriId,
       'judul_buku': judulBuku,
