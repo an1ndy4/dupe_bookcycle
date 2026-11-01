@@ -9,7 +9,9 @@ import '../../controllers/book_controller.dart';
 import '../../models/book_model.dart';
 
 class SellBookScreen extends StatefulWidget {
-  const SellBookScreen({Key? key}) : super(key: key);
+  final VoidCallback? onBack;
+
+  const SellBookScreen({super.key, this.onBack});
 
   @override
   State<SellBookScreen> createState() => _SellBookScreenState();
@@ -357,7 +359,15 @@ class _SellBookScreenState extends State<SellBookScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
-          onPressed: _isUploading ? null : () => Navigator.pop(context),
+          onPressed: _isUploading
+              ? null
+              : () {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
         ),
         title: const Text(
           'Jual Buku',

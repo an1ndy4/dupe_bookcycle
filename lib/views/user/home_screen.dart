@@ -113,7 +113,15 @@ class _HomeScreenState extends State<HomeScreen> {
           index: _selectedIndex,
           children: [
             _buildHomeContent(),
-            const SellBookScreen(),
+
+            SellBookScreen(
+              onBack: () {
+                setState(() {
+                  _selectedIndex = 0;
+                });
+              },
+            ),
+
             const NotificationScreen(),
             const ProfileScreen(),
           ],
